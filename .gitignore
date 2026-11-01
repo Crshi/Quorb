@@ -1,0 +1,17 @@
+# 依赖
+node_modules/
+package-lock.json
+
+# 构建产物（npm run build 重新生成）
+dist/
+
+# 本地测试用的 Chrome for Testing
+.cft/
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 日志
+*.log
+npm-debug.log*

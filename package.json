@@ -1,0 +1,14 @@
+{
+  "name": "quorb",
+  "private": true,
+  "type": "module",
+  "description": "AI 用量悬浮球浏览器扩展（开发工具配置；扩展本体见 manifest.json）",
+  "scripts": {
+    "build": "node build.mjs",
+    "check": "node --check src/lib/store.js && node --check src/lib/migrate.js && node --check src/providers/glm.js && node --check src/providers/registry.js && node --check src/shared/format.js && node --check src/shared/icons.js && node --check src/shared/aggregate.js && node --check src/background/service-worker.js && node --check src/background/orchestrator.js && node --check src/background/connections.js && node --check src/content/main.js && node --check src/content/bridge.js && node --check src/content/orb.js && node --check src/content/panel.js && node --check src/options/options.js && node --check src/sidepanel/panel.js && node build.mjs && echo SYNTAX OK",
+    "test": "node --test test/unit/*.test.js"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "code": 200,
+  "msg": "操作成功",
+  "success": true,
+  "data": {
+    "level": "GLM Coding Pro",
+    "limits": [
+      { "type": "CREDIT_LIMIT", "unit": 3, "number": 5, "usage": 200, "currentValue": 124, "remaining": 76, "percentage": 62, "nextResetTime": 1780000000000 },
+      { "type": "CREDIT_LIMIT", "unit": 6, "number": 1, "usage": 1200, "currentValue": 624, "remaining": 576, "percentage": 52, "nextResetTime": 1790000000000 }
+    ]
+  }
+}

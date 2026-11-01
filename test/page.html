@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><title>quorb E2E page</title>
+<style>
+  body{font-family:-apple-system,"PingFang SC",sans-serif;margin:0;padding:48px 56px;background:#f4f1ec;color:#222}
+  h1{font-size:22px;letter-spacing:-.02em}
+  p{max-width:60ch;color:#555;line-height:1.8}
+  .card{margin-top:28px;padding:20px;border-radius:16px;background:#fff;box-shadow:0 8px 24px -12px rgba(30,40,70,.2);max-width:520px}
+</style>
+</head>
+<body>
+  <h1>quorb 多连接预览页（示例页面）</h1>
+  <p>这是一个用于验证 quorb 悬浮球的本地测试页。mock 数据内置三条连接：
+     个人版（35%）、团队席位（20%）、旧团队（已过期演示 stale）。
+     右下角（或你上次停靠的位置）应当能看到一颗液态玻璃球：外环为所有参与连接中最紧的剩余百分比（应为 20，来源团队席位）。</p>
+  <div class="card">
+    <b>验证清单</b>
+    <p>· 球体渲染并可拖拽，靠近屏幕边缘可磁吸停靠；悬浮提示按连接列出各自最紧百分比<br>
+       · 侧边栏 / 面板：聚合 Hero = 20% + 三张连接卡，旧团队显示「数据过期」并带刷新链接<br>
+       · 「连接 / 管理」进管理视图：启停 / 编辑 / 删除 / 排序 / 频率 / 球体关注均可用<br>
+       · 「添加连接」向导的字段、提示、校验全部来自 configSchema（mock 的 glm 描述符）</p>
+  </div>
+  <script>window.addEventListener('error', e => { const d = document.createElement('pre'); d.id = 'pageerr'; d.textContent = 'PAGEERR: ' + e.message + '\n' + (e.error && e.error.stack || ''); document.body.appendChild(d); document.title = 'PAGEERR'; });</script>
+  <script>
+    // 仅测试页：把内容脚本的 Shadow Root 强制为 open，便于 Playwright/E2E 穿透交互。
+    // 真机扩展不受影响 —— 这段脚本只存在于 test/page.html。
+    (function () {
+      const orig = Element.prototype.attachShadow;
+      Element.prototype.attachShadow = function (init) { return orig.call(this, Object.assign({}, init, { mode: 'open' })); };
+    })();
+  </script>
+  <script src="/test/mock-chrome.js"></script>
+  <script src="/dist/content/index.js"></script>
+  <img src="/test/hold" alt="" style="display:none">
+</body>
+</html>

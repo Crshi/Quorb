@@ -1,0 +1,1776 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>quorb · 液态玻璃界面设计 v0.2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   quorb — Liquid Glass Design Board v0.2
+   材质核心：clear glass（亮）/ dusk glass（暗）双形态
+   ============================================================ */
+:root{
+  /* 纸面 */
+  --paper:   oklch(97.4% 0.004 100);
+  --paper-2: oklch(95.2% 0.006 100);
+  --ink:     oklch(24% 0.02 255);
+  --sub:     oklch(47% 0.015 255);
+  --faint:   oklch(62% 0.01 255);
+  --line:    oklch(24% 0.02 255 / 0.08);
+
+  /* 玻璃与语义色 */
+  --acc:     oklch(52% 0.115 205);   /* 冰海青 */
+  --acc-2:   oklch(72% 0.085 190);
+  --warn:    oklch(72% 0.135 75);
+  --crit:    oklch(60% 0.19 22);
+
+  --sans: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", system-ui, sans-serif;
+  --serif: "Instrument Serif", "Songti SC", serif;
+
+  --ease-out:    cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.5, 1);
+  --dur-fast: 160ms; --dur-base: 260ms;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:
+    radial-gradient(900px 480px at 85% -5%, oklch(93% 0.03 300 / .55), transparent 60%),
+    radial-gradient(800px 520px at -10% 30%, oklch(93% 0.03 210 / .5), transparent 55%),
+    var(--paper);
+  color:var(--ink);
+  font-family:var(--sans);
+  font-size:14.5px; line-height:1.7;
+  -webkit-font-smoothing:antialiased;
+  font-variant-numeric: tabular-nums;
+}
+::selection{background:oklch(52% 0.115 205 / .18)}
+.num{font-variant-numeric:tabular-nums;letter-spacing:-0.01em}
+.serif-i{font-family:var(--serif);font-style:italic;font-weight:400;letter-spacing:0}
+
+/* ---------- 顶栏：玻璃条 ---------- */
+.topbar{
+  position:sticky; top:0; z-index:50;
+  display:flex; align-items:center; gap:22px;
+  margin:14px auto 0; max-width:1180px;
+  padding:10px 12px 10px 20px; border-radius:9999px;
+  background:linear-gradient(135deg, rgba(255,255,255,.72), rgba(255,255,255,.44));
+  -webkit-backdrop-filter:blur(18px) saturate(1.7); backdrop-filter:blur(18px) saturate(1.7);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.9),
+    inset 0 0 0 1px rgba(255,255,255,.35),
+    0 12px 32px -14px oklch(30% 0.04 255 / .28);
+}
+.logo{display:flex;align-items:center;gap:10px;font-weight:600;font-size:15.5px;letter-spacing:-0.02em}
+.logo-orb{width:22px;height:22px;flex:none}
+.topnav{display:flex;gap:2px;margin-left:auto}
+.topnav a{
+  font-size:12.5px;color:var(--sub);text-decoration:none;padding:6px 13px;border-radius:9999px;
+  transition:all var(--dur-fast) var(--ease-out);
+}
+.topnav a:hover{color:var(--ink);background:rgba(255,255,255,.75);box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 2px 8px -2px oklch(30% 0.04 255/.2)}
+.ver{font-size:11px;color:var(--faint);padding-right:8px}
+
+/* ---------- 版式 ---------- */
+main{position:relative;z-index:1}
+.wrap{max-width:1180px;margin:0 auto;padding:0 32px}
+section{padding:110px 0 10px}
+.slabel{display:flex;align-items:baseline;gap:14px;margin-bottom:18px}
+.slabel .no{font-family:var(--serif);font-style:italic;font-size:15px;color:var(--acc)}
+.slabel .en{font-family:var(--serif);font-style:italic;font-size:17px;color:var(--faint)}
+.slabel .zh{font-size:12.5px;font-weight:600;letter-spacing:.14em;color:var(--sub)}
+h2{font-size:clamp(26px,3vw,34px);font-weight:600;letter-spacing:-0.028em;line-height:1.2;margin-bottom:12px}
+.sec-sub{color:var(--sub);max-width:58ch;margin-bottom:40px;font-size:14.5px}
+.sec-sub b{font-weight:600;color:var(--ink)}
+
+/* ---------- Hero ---------- */
+.hero{padding:120px 0 30px;display:grid;grid-template-columns:1.15fr .85fr;gap:56px;align-items:center}
+.hero .kicker{font-size:12.5px;letter-spacing:.14em;font-weight:600;color:var(--acc);margin-bottom:26px}
+.hero h1{
+  font-size:clamp(40px,4.6vw,60px);line-height:1.08;letter-spacing:-0.035em;font-weight:600;
+  margin-bottom:26px;text-wrap:balance;
+}
+.hero h1 .serif-i{font-weight:400;font-size:0.98em;color:var(--acc)}
+.hero p.lede{font-size:16px;color:var(--sub);max-width:46ch;margin-bottom:30px}
+.hero .meta{font-size:12px;color:var(--faint)}
+.hero .meta i{font-style:normal;margin:0 10px;opacity:.5}
+
+/* 壁纸小景：让玻璃有东西可折射 */
+.walltile{
+  position:relative;height:360px;border-radius:30px;overflow:hidden;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.4),
+    0 30px 70px -24px oklch(35% 0.06 280 / .45);
+}
+.walltile .scene{inset:0}
+.hero-tip{
+  position:absolute;left:50%;top:24px;transform:translateX(-50%);
+  white-space:nowrap;font-size:11.5px;color:var(--ink);
+  padding:7px 14px;border-radius:9999px;
+  background:linear-gradient(135deg, rgba(255,255,255,.78), rgba(255,255,255,.55));
+  -webkit-backdrop-filter:blur(14px) saturate(1.7); backdrop-filter:blur(14px) saturate(1.7);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.95), inset 0 0 0 1px rgba(255,255,255,.45), 0 10px 24px -10px oklch(35% 0.06 280/.4);
+}
+.hero-tip .num{font-weight:600}
+
+/* ---------- 玻璃材质（核心） ---------- */
+.lq{
+  position:relative;border-radius:24px;
+  background:linear-gradient(140deg, rgba(255,255,255,.66), rgba(255,255,255,.34) 48%, rgba(255,255,255,.48));
+  -webkit-backdrop-filter:blur(22px) saturate(1.8) brightness(1.04);
+  backdrop-filter:blur(22px) saturate(1.8) brightness(1.04);
+  box-shadow:
+    0 24px 60px -18px oklch(32% 0.05 255 / .30),
+    0 4px 14px -4px oklch(32% 0.05 255 / .12),
+    inset 0 1px 1px rgba(255,255,255,.9),
+    inset 0 -1px 1px rgba(255,255,255,.4),
+    inset 0 0 0 1px rgba(255,255,255,.32);
+}
+/* 边缘色散折射缝：粉/蓝细边 */
+.lq::before{
+  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;padding:1px;
+  background:linear-gradient(135deg, rgba(255,255,255,.95), rgba(255,255,255,.2) 32%,
+    oklch(78% 0.09 340 / .38) 56%, oklch(80% 0.07 230 / .45) 78%, rgba(255,255,255,.85));
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor; mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask-composite:exclude;
+}
+
+/* ---------- 演示区 ---------- */
+.demo-grid{display:grid;grid-template-columns:1fr 268px;gap:22px;align-items:start}
+.stage-frame{border-radius:32px;padding:0;overflow:hidden;position:relative}
+.stage-titlebar{
+  display:flex;align-items:center;gap:10px;padding:13px 20px;
+  font-size:11.5px;color:var(--sub);
+  background:linear-gradient(135deg, rgba(255,255,255,.6), rgba(255,255,255,.3));
+  -webkit-backdrop-filter:blur(16px) saturate(1.6); backdrop-filter:blur(16px) saturate(1.6);
+  box-shadow:inset 0 -1px 0 rgba(255,255,255,.5);
+}
+.stage-titlebar .dot{width:7px;height:7px;border-radius:50%;background:var(--acc);box-shadow:0 0 0 4px oklch(52% 0.115 205/.15)}
+.stage{
+  position:relative;height:520px;overflow:hidden;user-select:none;
+  transition:background var(--dur-base) var(--ease-out);
+}
+
+/* 壁纸场景（默认） */
+.scene{position:absolute;inset:0}
+.scene i{position:absolute;border-radius:50%;filter:blur(52px);opacity:.85;will-change:transform}
+.scene i.b1{width:340px;height:340px;left:-110px;top:-130px;background:oklch(87% 0.065 55);opacity:.7;animation:drift1 16s ease-in-out infinite alternate}
+.scene i.b2{width:380px;height:380px;right:-90px;top:8%;background:oklch(82% 0.07 305);animation:drift2 19s ease-in-out infinite alternate}
+.scene i.b3{width:420px;height:420px;left:16%;bottom:-160px;background:oklch(84% 0.06 225);animation:drift3 22s ease-in-out infinite alternate}
+.scene i.b4{width:260px;height:260px;right:20%;bottom:-40px;background:oklch(88% 0.06 150);animation:drift1 24s ease-in-out infinite alternate-reverse}
+@keyframes drift1{to{transform:translate(60px,40px) scale(1.12)}}
+@keyframes drift2{to{transform:translate(-70px,30px) scale(.92)}}
+@keyframes drift3{to{transform:translate(40px,-50px) scale(1.08)}}
+.stage .wall-base{position:absolute;inset:0;background:linear-gradient(168deg, oklch(95% 0.012 260), oklch(93% 0.018 320 / .7) 55%, oklch(93% 0.015 200 / .6))}
+.stage .fake-chrome{position:relative;z-index:5;display:flex;align-items:center;gap:10px;padding:12px 16px}
+.stage .urlbox{
+  flex:1;max-width:320px;margin:0 auto;text-align:center;
+  font-size:11px;color:var(--sub);padding:6px 16px;border-radius:9999px;
+  background:rgba(255,255,255,.55);
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.8), inset 0 0 0 1px rgba(255,255,255,.4);
+}
+/* 文章场景 */
+.stage.env-light{background:oklch(97% 0.003 95)}
+.env-doc{position:absolute;inset:52px 0 0;padding:34px 58px;z-index:1}
+.env-doc h3{font-size:22px;font-weight:600;letter-spacing:-0.02em;color:oklch(25% 0.02 255);margin-bottom:14px}
+.env-doc .ln{height:9px;border-radius:99px;background:oklch(24% 0.02 255/.07);margin-bottom:11px}
+.env-doc .ln.w60{width:60%}.env-doc .ln.w85{width:85%}.env-doc .ln.w75{width:75%}
+.env-doc .env-img{height:128px;border-radius:18px;margin:20px 0;background:linear-gradient(120deg, oklch(88% 0.05 230), oklch(90% 0.05 320))}
+/* 深色编辑器场景 */
+.stage.env-dark{background:oklch(17% 0.015 265)}
+.stage.env-dark .urlbox{background:rgba(255,255,255,.08);color:oklch(75% 0.01 255);box-shadow:inset 0 0 0 1px rgba(255,255,255,.09), inset 0 1px 0 rgba(255,255,255,.08)}
+.env-code{position:absolute;inset:52px 0 0;padding:30px 52px;z-index:1;
+  font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:12px;line-height:2.15;color:oklch(66% 0.02 255)}
+.env-code em{font-style:normal;color:oklch(76% 0.09 165)}
+.env-code b{font-weight:500;color:oklch(80% 0.07 210)}
+.env-code u{text-decoration:none;color:oklch(75% 0.09 60)}
+
+/* 吸附光带 */
+.snap-hint{position:absolute;z-index:3;opacity:0;transition:opacity var(--dur-fast) var(--ease-out);pointer-events:none;
+  background:linear-gradient(var(--dir,180deg), oklch(52% 0.115 205/.05), oklch(52% 0.115 205/.34))}
+.snap-hint.left{left:0;top:0;bottom:0;width:16px;--dir:90deg}
+.snap-hint.right{right:0;top:0;bottom:0;width:16px;--dir:270deg}
+.snap-hint.top{top:0;left:0;right:0;height:16px;--dir:180deg}
+.snap-hint.bottom{bottom:0;left:0;right:0;height:16px;--dir:0deg}
+.snap-hint.on{opacity:1}
+
+/* ---------- 球体 ---------- */
+.q-orb-slot{position:absolute;z-index:10;width:56px;height:56px;will-change:transform;touch-action:none;cursor:grab}
+.q-orb-slot.dragging{cursor:grabbing;transition:none !important}
+.q-orb-slot.dock-anim{transition:transform 400ms var(--ease-spring)}
+
+.orb{
+  position:relative;width:100%;height:100%;border-radius:50%;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+  background:
+    radial-gradient(130% 95% at 28% 16%, rgba(255,255,255,.92), rgba(255,255,255,.3) 40%, rgba(255,255,255,0) 62%),
+    radial-gradient(105% 105% at 74% 90%, var(--glow, oklch(72% 0.085 190/.5)), transparent 58%),
+    linear-gradient(150deg, rgba(255,255,255,.5), rgba(255,255,255,.14));
+  -webkit-backdrop-filter:blur(4px) saturate(1.9) brightness(1.1);
+  backdrop-filter:blur(4px) saturate(1.9) brightness(1.1);
+  box-shadow:
+    0 20px 44px -10px oklch(32% 0.06 255 / .4),
+    0 2px 8px -1px oklch(32% 0.06 255 / .16),
+    inset 0 1.5px 1px rgba(255,255,255,.95),
+    inset 0 -10px 18px rgba(255,255,255,.34),
+    inset 0 0 0 1px rgba(255,255,255,.55),
+    inset 0 0 22px rgba(255,255,255,.2);
+  transition:transform 180ms var(--ease-out), box-shadow 240ms var(--ease-out);
+}
+.orb::after{ /* 锐利高光 */
+  content:"";position:absolute;left:17%;top:11%;width:20%;height:12%;
+  border-radius:50%;transform:rotate(-26deg);
+  background:radial-gradient(closest-side, rgba(255,255,255,1), rgba(255,255,255,0));
+  filter:blur(.4px);
+}
+.orb .sheen{
+  position:absolute;inset:-30%;pointer-events:none;opacity:0;
+  background:linear-gradient(112deg, transparent 43%, rgba(255,255,255,.6) 50%, transparent 57%);
+}
+.q-orb-slot:hover .sheen{animation:sheen 1s var(--ease-out)}
+@keyframes sheen{0%{opacity:0;transform:translateX(-72%)}30%{opacity:1}100%{opacity:0;transform:translateX(72%)}}
+.q-orb-slot.grab:hover .orb{transform:scale(1.07);box-shadow:
+    0 28px 60px -12px oklch(32% 0.06 255/.48), 0 3px 10px -1px oklch(32% 0.06 255/.18),
+    inset 0 1.5px 1px rgba(255,255,255,.95), inset 0 -10px 18px rgba(255,255,255,.34),
+    inset 0 0 0 1px rgba(255,255,255,.6), inset 0 0 26px rgba(255,255,255,.26)}
+.orb.is-drag{transform:scale(.94)}
+.orb.is-drag::before{
+  content:"";position:absolute;inset:-9px;border-radius:50%;
+  border:1.5px dashed oklch(52% 0.115 205/.55);
+}
+.orb.is-crit{animation:crit-pulse 2.2s var(--ease-out) infinite}
+@keyframes crit-pulse{
+  0%,100%{box-shadow:0 20px 44px -10px oklch(32% 0.06 255/.4),0 2px 8px -1px oklch(32% 0.06 255/.16),
+    inset 0 1.5px 1px rgba(255,255,255,.95), inset 0 -10px 18px rgba(255,255,255,.34),
+    inset 0 0 0 1px rgba(255,255,255,.55), 0 0 0 0 oklch(60% 0.19 22/.45)}
+  50%{box-shadow:0 20px 44px -10px oklch(32% 0.06 255/.4),0 2px 8px -1px oklch(32% 0.06 255/.16),
+    inset 0 1.5px 1px rgba(255,255,255,.95), inset 0 -10px 18px rgba(255,255,255,.34),
+    inset 0 0 0 1px rgba(255,255,255,.55), 0 0 0 12px oklch(60% 0.19 22/0)}
+}
+.orb-svg{position:absolute;inset:0;width:100%;height:100%}
+.orb-track{fill:none;stroke:oklch(28% 0.04 255/.12);stroke-width:3}
+.mat-dark .orb-track,.orb.mat-dark .orb-track{stroke:rgba(255,255,255,.18)}
+.orb-prog{fill:none;stroke-width:3;stroke-linecap:round;transform:rotate(-90deg);transform-origin:50% 50%;
+  transition:stroke-dashoffset 600ms var(--ease-out);
+  filter:drop-shadow(0 0 5px oklch(52% 0.115 205/.55))}
+.orb.ring-warn .orb-prog{stroke:var(--warn);filter:drop-shadow(0 0 5px oklch(72% 0.135 75/.6))}
+.orb.ring-crit .orb-prog{stroke:var(--crit);filter:drop-shadow(0 0 5px oklch(60% 0.19 22/.6))}
+.orb.ring-none .orb-prog{stroke:oklch(40% 0.03 255/.4);stroke-dasharray:3 6 !important;filter:none}
+.mat-dark .orb.ring-none .orb-prog,.orb.mat-dark.ring-none .orb-prog{stroke:rgba(255,255,255,.4)}
+.orb.is-syncing .orb-svg{animation:q-spin 1.1s linear infinite}
+.orb.is-syncing .orb-prog{stroke-dasharray:44 113 !important}
+@keyframes q-spin{to{transform:rotate(360deg)}}
+.orb-core{position:relative;display:flex;align-items:baseline;justify-content:center;
+  color:oklch(26% 0.03 255/.88);text-shadow:0 1px 0 rgba(255,255,255,.4)}
+.orb.mat-dark .orb-core{color:rgba(255,255,255,.94);text-shadow:0 1px 2px rgba(0,0,0,.3)}
+.orb-num{font-size:16px;font-weight:600;letter-spacing:-0.03em;font-feature-settings:"tnum"}
+.orb-pct{font-size:8.5px;opacity:.55;margin-left:1px}
+.q-orb-slot.compact .orb-num{font-size:12px}
+.orb-badge{
+  position:absolute;top:2px;right:2px;width:15px;height:15px;border-radius:50%;
+  background:var(--crit);color:#fff;font-size:9.5px;font-weight:600;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.45), 0 2px 6px oklch(60% 0.19 22/.5);
+}
+.orb-dot{position:absolute;top:4px;right:4px;width:7px;height:7px;border-radius:50%;background:var(--warn);
+  box-shadow:0 0 8px oklch(72% 0.135 75/.8)}
+
+/* 暗形态玻璃 */
+.orb.mat-dark{
+  background:
+    radial-gradient(130% 95% at 28% 16%, rgba(255,255,255,.34), rgba(255,255,255,.08) 42%, rgba(255,255,255,0) 62%),
+    radial-gradient(105% 105% at 74% 88%, var(--glow, oklch(72% 0.085 190/.35)), transparent 58%),
+    linear-gradient(150deg, oklch(45% 0.02 260/.5), oklch(22% 0.02 260/.72));
+  -webkit-backdrop-filter:blur(6px) saturate(1.5) brightness(.9);
+  backdrop-filter:blur(6px) saturate(1.5) brightness(.9);
+  box-shadow:
+    0 20px 44px -10px oklch(10% 0.02 260/.6), 0 2px 8px -1px oklch(10% 0.02 260/.4),
+    inset 0 1.5px 1px rgba(255,255,255,.5), inset 0 -10px 18px rgba(255,255,255,.1),
+    inset 0 0 0 1px rgba(255,255,255,.22);
+}
+
+/* 悬停快捷提示 */
+.q-tip{
+  position:absolute;bottom:calc(100% + 10px);left:50%;transform:translateX(-50%);
+  white-space:nowrap;pointer-events:none;z-index:20;
+  font-size:11.5px;color:var(--ink);line-height:1.55;
+  padding:8px 13px;border-radius:14px;
+  background:linear-gradient(135deg, rgba(255,255,255,.82), rgba(255,255,255,.6));
+  -webkit-backdrop-filter:blur(16px) saturate(1.7); backdrop-filter:blur(16px) saturate(1.7);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.95), inset 0 0 0 1px rgba(255,255,255,.5),
+    0 14px 30px -12px oklch(32% 0.05 255/.4);
+  opacity:0;transition:opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+}
+.q-tip .num{font-weight:600;color:var(--acc)}
+.q-tip b{font-weight:600}
+.q-tip.mat-dark{background:linear-gradient(135deg, oklch(35% 0.02 260/.8), oklch(25% 0.02 260/.85));
+  color:rgba(255,255,255,.92);box-shadow:inset 0 1px 0 rgba(255,255,255,.25), inset 0 0 0 1px rgba(255,255,255,.14), 0 14px 30px -12px rgba(0,0,0,.5)}
+.orb-cell:hover .q-tip,.q-orb-slot:hover .q-tip{opacity:1;transform:translateX(-50%) translateY(-3px)}
+.q-orb-slot.dragging .q-tip,.q-orb-slot.docked .q-tip{display:none}
+
+/* ---------- 展开面板 ---------- */
+.q-panel{
+  position:absolute;z-index:30;width:min(348px, calc(100% - 24px));
+  border-radius:26px;overflow:hidden;
+  background:linear-gradient(150deg, rgba(255,255,255,.78), rgba(255,255,255,.52));
+  -webkit-backdrop-filter:blur(28px) saturate(1.85); backdrop-filter:blur(28px) saturate(1.85);
+  box-shadow:
+    0 36px 90px -20px oklch(30% 0.05 255/.42),
+    0 8px 22px -8px oklch(30% 0.05 255/.2),
+    inset 0 1px 1px rgba(255,255,255,.95),
+    inset 0 0 0 1px rgba(255,255,255,.45);
+  color:var(--ink);
+  opacity:1;transform:none;
+  transition:opacity var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-spring);
+}
+.q-panel::before{
+  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;padding:1px;z-index:40;
+  background:linear-gradient(135deg, rgba(255,255,255,.95), rgba(255,255,255,.25) 35%,
+    oklch(80% 0.08 340/.35) 58%, oklch(82% 0.06 230/.4) 80%, rgba(255,255,255,.8));
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor; mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask-composite:exclude;
+}
+@starting-style{.q-panel{opacity:0;transform:scale(.94) translateY(8px)}}
+.q-panel.closing{opacity:0;transform:scale(.96) translateY(6px);pointer-events:none}
+.q-panel.mat-dark{
+  background:linear-gradient(150deg, oklch(38% 0.02 260/.72), oklch(24% 0.02 260/.8));
+  color:rgba(255,255,255,.93);
+  box-shadow:0 36px 90px -20px rgba(5,8,20,.65), 0 8px 22px -8px rgba(5,8,20,.4),
+    inset 0 1px 1px rgba(255,255,255,.34), inset 0 0 0 1px rgba(255,255,255,.16);
+}
+.q-panel.mat-dark::before{background:linear-gradient(135deg, rgba(255,255,255,.5), rgba(255,255,255,.12) 35%,
+    oklch(70% 0.06 340/.3) 58%, oklch(72% 0.05 230/.3) 80%, rgba(255,255,255,.4))}
+
+.qp-head{display:flex;align-items:center;gap:9px;padding:14px 16px 11px;box-shadow:inset 0 -1px 0 rgba(20,30,60,.06)}
+.mat-dark .qp-head{box-shadow:inset 0 -1px 0 rgba(255,255,255,.09)}
+.qp-head .name{font-weight:600;font-size:14.5px;letter-spacing:-0.02em}
+.qp-head .name span{color:var(--faint);font-weight:500;font-size:10.5px;margin-left:6px}
+.qp-iconbtn{
+  width:27px;height:27px;border-radius:9999px;border:none;cursor:pointer;
+  background:rgba(255,255,255,.55);color:var(--sub);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.9), inset 0 0 0 1px rgba(255,255,255,.5), 0 1px 3px oklch(30% 0.05 255/.12);
+  transition:all var(--dur-fast) var(--ease-out);
+}
+.qp-iconbtn:hover{color:var(--ink);transform:translateY(-1px);box-shadow:inset 0 1px 0 rgba(255,255,255,.95), inset 0 0 0 1px rgba(255,255,255,.6), 0 4px 10px -2px oklch(30% 0.05 255/.25)}
+.qp-iconbtn svg{width:12px;height:12px}
+.mat-dark .qp-iconbtn{background:rgba(255,255,255,.1);color:rgba(255,255,255,.75);box-shadow:inset 0 1px 0 rgba(255,255,255,.2), inset 0 0 0 1px rgba(255,255,255,.12)}
+.mat-dark .qp-iconbtn:hover{color:#fff;background:rgba(255,255,255,.16)}
+.qp-head .grow{flex:1}
+
+.qp-hero{padding:16px 18px 14px}
+.qp-hero .row1{display:flex;align-items:baseline;gap:9px}
+.qp-hero .big{font-size:40px;font-weight:600;letter-spacing:-0.045em;line-height:1;color:var(--ink)}
+.qp-hero .big.warn{color:oklch(58% 0.12 70)}
+.qp-hero .big.crit{color:var(--crit)}
+.qp-hero .unit{font-size:12.5px;color:var(--faint)}
+.qp-hero .balance{margin-left:auto;font-size:11px;color:var(--sub);text-align:right;line-height:1.55;white-space:nowrap}
+.qp-hero .balance b{color:var(--ink);font-weight:600}
+.qp-segbar{display:flex;gap:3px;height:7px;margin:14px 0 9px}
+.qp-segbar .seg{border-radius:99px;overflow:hidden;background:rgba(20,30,60,.08);position:relative}
+.mat-dark .qp-segbar .seg{background:rgba(255,255,255,.12)}
+.qp-segbar .seg i{position:absolute;inset:0;border-radius:99px;display:block;transform-origin:left}
+.qp-hero .legend{display:flex;gap:11px;flex-wrap:wrap;font-size:10px;color:var(--faint)}
+.qp-hero .legend em{font-style:normal;display:inline-flex;align-items:center;gap:4px}
+.qp-hero .legend i{width:7px;height:7px;border-radius:2.5px;display:inline-block;box-shadow:inset 0 1px 0 rgba(255,255,255,.4)}
+
+.qp-tabs{display:flex;gap:3px;margin:2px 16px 0;padding:3px;border-radius:9999px;
+  background:rgba(20,30,60,.06);box-shadow:inset 0 1px 2px rgba(20,30,60,.05)}
+.mat-dark .qp-tabs{background:rgba(255,255,255,.08);box-shadow:inset 0 1px 2px rgba(0,0,0,.2)}
+.qp-tab{
+  flex:1;border:none;background:transparent;cursor:pointer;color:var(--sub);
+  font-family:var(--sans);font-size:11.5px;font-weight:500;padding:6px 0;border-radius:9999px;
+  transition:all var(--dur-fast) var(--ease-out);
+}
+.qp-tab:hover{color:var(--ink)}
+.qp-tab.on{background:rgba(255,255,255,.92);color:var(--ink);font-weight:600;
+  box-shadow:0 2px 8px -2px oklch(30% 0.05 255/.3), inset 0 1px 0 rgba(255,255,255,.95)}
+.mat-dark .qp-tab.on{background:rgba(255,255,255,.16);color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.18)}
+
+.qp-body{max-height:296px;overflow-y:auto;overscroll-behavior:contain}
+.qp-body::-webkit-scrollbar{width:8px}
+.qp-body::-webkit-scrollbar-thumb{background:rgba(20,30,60,.16);border-radius:99px;border:2px solid transparent;background-clip:content-box}
+
+.qp-row{box-shadow:inset 0 -1px 0 rgba(20,30,60,.05);transition:background var(--dur-fast) var(--ease-out)}
+.qp-row:last-child{box-shadow:none}
+.qp-row:hover{background:rgba(255,255,255,.5)}
+.mat-dark .qp-row{box-shadow:inset 0 -1px 0 rgba(255,255,255,.07)}
+.mat-dark .qp-row:hover{background:rgba(255,255,255,.06)}
+.qp-row-head{display:flex;align-items:center;gap:11px;padding:11px 16px;cursor:pointer}
+.qp-chip{
+  width:28px;height:28px;border-radius:9.5px;flex:none;position:relative;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+  font-size:11.5px;font-weight:600;color:rgba(255,255,255,.96);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.45), inset 0 -1px 2px rgba(0,0,0,.14), 0 2px 5px -1px oklch(30% 0.06 255/.25);
+}
+.qp-row.warn-row .qp-chip{outline:1.5px solid var(--warn);outline-offset:2px}
+.qp-row.err-row .qp-chip{filter:grayscale(.85);opacity:.7}
+.qp-row-info{flex:1;min-width:0}
+.qp-row-name{font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:6px}
+.qp-row-name .plan{font-size:9.5px;font-weight:500;color:var(--sub);background:rgba(20,30,60,.06);padding:1.5px 7px;border-radius:99px}
+.mat-dark .qp-row-name .plan{color:rgba(255,255,255,.65);background:rgba(255,255,255,.1)}
+.qp-row-sub{font-size:10px;color:var(--faint);margin-top:1px}
+.qp-row-val{text-align:right}
+.qp-row-val .pct{font-size:13px;font-weight:600}
+.qp-row-val .pct.low{color:oklch(58% 0.12 70)}
+.qp-row-val .pct.crit{color:var(--crit)}
+.qp-row-val .bar{width:64px;height:3.5px;border-radius:99px;background:rgba(20,30,60,.09);margin-top:5px;overflow:hidden}
+.mat-dark .qp-row-val .bar{background:rgba(255,255,255,.14)}
+.qp-row-val .bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg, var(--acc), var(--acc-2));transition:width 600ms var(--ease-out)}
+.qp-row.val-warn .bar i{background:linear-gradient(90deg, oklch(66% 0.13 70), var(--warn))}
+.qp-row.val-crit .bar i{background:linear-gradient(90deg, oklch(54% 0.17 25), var(--crit))}
+.qp-row.val-cash .bar{background:none;border:1px dashed rgba(20,30,60,.22)}
+.mat-dark .qp-row.val-cash .bar{border-color:rgba(255,255,255,.28)}
+.qp-row.val-cash .bar i{background:rgba(20,30,60,.18)}
+.qp-row.val-cash .pct{color:var(--acc);font-size:12px}
+.qp-chev{color:var(--faint);transition:transform var(--dur-base) var(--ease-spring);flex:none}
+.qp-row.open .qp-chev{transform:rotate(90deg)}
+.qp-detail{display:none;padding:2px 16px 13px 55px}
+.qp-row.open .qp-detail{display:block}
+.qp-detail .grid{display:grid;grid-template-columns:1fr 1fr;gap:7px 14px;margin-bottom:10px}
+.qp-detail .kv .k{font-size:9.5px;color:var(--faint);letter-spacing:.03em}
+.qp-detail .kv .v{font-size:12px;font-weight:600}
+.qp-detail .acts{display:flex;gap:8px}
+.qp-mini{
+  font-size:10.5px;font-weight:500;padding:5.5px 12px;border-radius:99px;cursor:pointer;
+  border:none;color:var(--ink);background:rgba(255,255,255,.72);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.95), inset 0 0 0 1px rgba(255,255,255,.55), 0 2px 6px -1px oklch(30% 0.05 255/.18);
+  transition:all var(--dur-fast) var(--ease-out);font-family:var(--sans);
+}
+.qp-mini:hover{transform:translateY(-1px)}
+.qp-mini.acc{background:var(--acc);color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.35), 0 3px 10px -2px oklch(52% 0.115 205/.55)}
+.qp-errline{display:flex;align-items:center;gap:7px;margin-bottom:9px;font-size:10.5px;color:var(--crit);font-weight:500}
+.qp-errline::before{content:"⚠";font-size:11px}
+/* 多窗口配额（GLM 5h + 周） */
+.wins{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.win{padding:9px 11px;border-radius:13px;background:rgba(20,30,60,.045)}
+.mat-dark .win{background:rgba(255,255,255,.07)}
+.win.binding{box-shadow:inset 0 0 0 1.5px oklch(72% 0.135 75/.5)}
+.w-head{display:flex;align-items:center;gap:5px;margin-bottom:7px}
+.w-label{font-size:9.5px;font-weight:600;color:var(--sub)}
+.w-bind{font-size:8.5px;font-weight:600;color:oklch(52% 0.12 70);background:oklch(72% 0.135 75/.16);padding:1px 6px;border-radius:99px}
+.w-bar{height:3.5px;border-radius:99px;background:rgba(20,30,60,.09);overflow:hidden;margin-bottom:6px}
+.mat-dark .w-bar{background:rgba(255,255,255,.14)}
+.w-bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg, var(--acc), var(--acc-2))}
+.win.binding .w-bar i{background:linear-gradient(90deg, oklch(64% 0.13 70), var(--warn))}
+.w-meta{font-size:10.5px;font-weight:600}
+.w-meta .mu{color:var(--faint);font-weight:400}
+.w-reset{font-size:9px;color:var(--faint);margin-top:2px}
+.win.binding .w-reset{color:oklch(52% 0.12 70);font-weight:500}
+.tight{margin-top:8px;font-size:10px;font-weight:500;color:oklch(52% 0.12 70);display:flex;align-items:center;gap:6px}
+.tight::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--warn);flex:none}
+.rowstate-card.span2{grid-column:1/-1}
+
+.sk-row{display:flex;align-items:center;gap:11px;padding:12px 16px;box-shadow:inset 0 -1px 0 rgba(20,30,60,.05)}
+.sk{border-radius:6px;background:linear-gradient(90deg, rgba(20,30,60,.07) 25%, rgba(20,30,60,.13) 45%, rgba(20,30,60,.07) 65%);
+  background-size:220% 100%;animation:shimmer 1.3s linear infinite}
+@keyframes shimmer{to{background-position:-120% 0}}
+.sk-circle{width:28px;height:28px;border-radius:9.5px;flex:none}
+.sk-line{height:8px}
+.sk-line.w1{width:76px}.sk-line.w2{width:44px;margin-top:6px}.sk-line.w3{width:52px;margin-left:auto}
+
+.qp-foot{display:flex;align-items:center;gap:8px;padding:11px 16px;
+  font-size:10.5px;color:var(--faint);box-shadow:inset 0 1px 0 rgba(20,30,60,.06)}
+.mat-dark .qp-foot{box-shadow:inset 0 1px 0 rgba(255,255,255,.09)}
+.qp-foot .grow{flex:1}
+.qp-foot a{color:var(--acc);text-decoration:none;font-weight:600}
+.qp-foot a:hover{text-decoration:underline}
+
+/* 趋势 */
+.qp-trend{padding:14px 18px}
+.qp-trend .t-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
+.qp-trend .t-title{font-size:11.5px;font-weight:600}
+.qp-trend .t-total{font-size:10px;color:var(--faint)}
+.t-chart{display:flex;align-items:flex-end;gap:7px;height:108px;margin-bottom:8px}
+.t-col{flex:1;display:flex;flex-direction:column-reverse;gap:2px;border-radius:5px;overflow:hidden;
+  transition:transform var(--dur-fast) var(--ease-out)}
+.t-col:hover{transform:scaleY(1.04)}
+.t-col i{display:block;width:100%}
+.t-x{display:flex;gap:7px}
+.t-x span{flex:1;text-align:center;font-size:9px;color:var(--faint)}
+.t-legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px;padding-top:11px;box-shadow:inset 0 1px 0 rgba(20,30,60,.06)}
+.mat-dark .t-legend{box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+.t-legend em{font-style:normal;font-size:9.5px;color:var(--faint);display:flex;align-items:center;gap:5px}
+.t-legend i{width:7px;height:7px;border-radius:2.5px}
+
+/* 设置 */
+.qp-set{padding:13px 18px 15px}
+.set-group{margin-bottom:13px}
+.set-label{font-size:10px;color:var(--faint);letter-spacing:.04em;margin-bottom:6px;font-weight:500}
+.seg{display:flex;background:rgba(20,30,60,.06);border-radius:9999px;padding:3px;gap:3px;
+  box-shadow:inset 0 1px 2px rgba(20,30,60,.05)}
+.mat-dark .seg{background:rgba(255,255,255,.08)}
+.seg button{
+  flex:1;border:none;background:transparent;color:var(--sub);cursor:pointer;
+  font-size:10.5px;font-weight:500;font-family:var(--sans);padding:5px 0;border-radius:9999px;
+  transition:all var(--dur-fast) var(--ease-out);
+}
+.seg button.on{background:rgba(255,255,255,.92);color:var(--ink);font-weight:600;
+  box-shadow:0 2px 8px -2px oklch(30% 0.05 255/.3), inset 0 1px 0 rgba(255,255,255,.95)}
+.mat-dark .seg button.on{background:rgba(255,255,255,.16);color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.18)}
+.set-slider{display:flex;align-items:center;gap:10px}
+.set-slider input{flex:1;accent-color:var(--acc)}
+.set-slider .num{font-size:10px;color:var(--sub)}
+
+/* 空状态 */
+.qp-empty{padding:36px 24px 32px;text-align:center}
+.qp-empty .ghost{width:64px;height:64px;margin:0 auto 16px;border-radius:50%;
+  border:1.5px dashed rgba(20,30,60,.28);display:flex;align-items:center;justify-content:center;color:var(--faint)}
+.qp-empty h4{font-size:15px;font-weight:600;letter-spacing:-0.01em;margin-bottom:6px}
+.qp-empty p{font-size:11px;color:var(--sub);margin-bottom:16px;line-height:1.7}
+.qp-cta{
+  display:inline-block;border:none;cursor:pointer;font-family:var(--sans);
+  font-size:11.5px;font-weight:600;color:#fff;
+  background:linear-gradient(180deg, oklch(58% 0.12 205), oklch(48% 0.115 205));
+  padding:8.5px 22px;border-radius:9999px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.4), 0 8px 20px -6px oklch(52% 0.115 205/.6);
+  transition:all var(--dur-fast) var(--ease-out);
+}
+.qp-cta:hover{transform:translateY(-1px);box-shadow:inset 0 1px 0 rgba(255,255,255,.4), 0 12px 26px -8px oklch(52% 0.115 205/.7)}
+
+/* ---------- 控制台 ---------- */
+.controls{display:flex;flex-direction:column;gap:14px;position:sticky;top:86px}
+.ctrl-card{
+  border-radius:22px;padding:16px 17px;
+  background:linear-gradient(140deg, rgba(255,255,255,.66), rgba(255,255,255,.38));
+  -webkit-backdrop-filter:blur(18px) saturate(1.6); backdrop-filter:blur(18px) saturate(1.6);
+  box-shadow:inset 0 1px 1px rgba(255,255,255,.9), inset 0 0 0 1px rgba(255,255,255,.35),
+    0 14px 36px -16px oklch(32% 0.05 255/.25);
+}
+.ctrl-card h5{font-size:10.5px;letter-spacing:.1em;color:var(--faint);margin-bottom:11px;font-weight:600}
+.ctrl-card .seg-dark{display:flex;flex-wrap:wrap;gap:6px}
+.ctrl-btn{
+  border:none;cursor:pointer;font-size:11.5px;font-weight:500;font-family:var(--sans);
+  color:var(--sub);padding:6.5px 13px;border-radius:9999px;
+  background:rgba(20,30,60,.05);box-shadow:inset 0 0 0 1px rgba(20,30,60,.05);
+  transition:all var(--dur-fast) var(--ease-out);
+}
+.ctrl-btn:hover{color:var(--ink);background:rgba(255,255,255,.8);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.9), inset 0 0 0 1px rgba(255,255,255,.5), 0 3px 8px -2px oklch(30% 0.05 255/.2)}
+.ctrl-btn.on{background:var(--acc);color:#fff;font-weight:600;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.35), 0 5px 14px -4px oklch(52% 0.115 205/.6)}
+.ctrl-note{font-size:11px;color:var(--sub);line-height:1.75}
+.ctrl-note b{font-weight:600;color:var(--ink)}
+
+/* ---------- 状态图鉴 ---------- */
+.state-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(198px,1fr));gap:14px}
+.orb-cell{
+  border-radius:24px;padding:28px 16px 18px;
+  background:linear-gradient(140deg, rgba(255,255,255,.6), rgba(255,255,255,.32));
+  -webkit-backdrop-filter:blur(16px) saturate(1.5); backdrop-filter:blur(16px) saturate(1.5);
+  box-shadow:inset 0 1px 1px rgba(255,255,255,.85), inset 0 0 0 1px rgba(255,255,255,.32),
+    0 10px 28px -14px oklch(32% 0.05 255/.2);
+  display:flex;flex-direction:column;align-items:center;
+  transition:transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out);
+}
+.orb-cell:hover{transform:translateY(-4px);
+  box-shadow:inset 0 1px 1px rgba(255,255,255,.9), inset 0 0 0 1px rgba(255,255,255,.4),
+    0 20px 40px -16px oklch(32% 0.05 255/.3)}
+.orb-cell .holder{position:relative;height:76px;display:flex;align-items:center;justify-content:center;width:100%}
+.orb-cell .cap{margin-top:16px;font-size:11px;color:var(--sub);text-align:center;line-height:1.6}
+.orb-cell .cap b{display:block;color:var(--ink);font-weight:600;font-size:12px;margin-bottom:1px}
+.orb-cell .cap .num{color:var(--acc);font-size:10px;font-weight:500}
+.orb-cell .free-orb{position:relative}
+.orb-cell.dark-cell{background:linear-gradient(140deg, oklch(30% 0.02 260/.92), oklch(20% 0.02 260/.95))}
+.orb-cell.dark-cell .cap b{color:rgba(255,255,255,.92)}
+.orb-cell.dark-cell .cap{color:rgba(255,255,255,.6)}
+.orb-cell.dark-cell .cap .num{color:oklch(78% 0.07 190)}
+
+.dock-demo{
+  position:relative;width:150px;height:64px;border-radius:16px;overflow:hidden;
+  background:
+    radial-gradient(120px 70px at 30% 20%, oklch(88% 0.05 320/.8), transparent 70%),
+    radial-gradient(140px 90px at 80% 90%, oklch(86% 0.05 220/.8), transparent 70%),
+    linear-gradient(160deg, oklch(70% 0.03 260/.4), oklch(45% 0.03 260/.5));
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.3);
+}
+.dock-demo .edge{position:absolute;background:oklch(52% 0.115 205/.4)}
+.dock-demo.right .edge{right:0;top:0;bottom:0;width:2.5px}
+.dock-demo.right .orb-pos{position:absolute;right:0;top:50%;transform:translate(52%,-50%)}
+.dock-demo.left .edge{left:0;top:0;bottom:0;width:2.5px}
+.dock-demo.left .orb-pos{position:absolute;left:0;top:50%;transform:translate(-52%,-50%)}
+.dock-demo.top .edge{top:0;left:0;right:0;height:2.5px}
+.dock-demo.top .orb-pos{position:absolute;top:0;left:50%;transform:translate(-50%,-52%)}
+
+/* ---------- 面板解剖 ---------- */
+.anatomy{display:grid;grid-template-columns:minmax(0,430px) 1fr;gap:44px;align-items:start}
+.anatomy-stage{position:relative;border-radius:30px;padding:40px 24px;display:flex;justify-content:center;overflow:hidden}
+.anatomy-stage .scene i{opacity:.7}
+.an-note-list{display:flex;flex-direction:column;gap:18px}
+.an-note{display:flex;gap:14px;align-items:flex-start}
+.an-note .n{
+  width:24px;height:24px;border-radius:9999px;flex:none;margin-top:1px;
+  background:rgba(255,255,255,.75);color:var(--acc);font-size:11px;font-weight:600;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.95), inset 0 0 0 1px rgba(255,255,255,.6), 0 3px 8px -2px oklch(30% 0.05 255/.25);
+}
+.an-note b{display:block;font-size:13px;font-weight:600;margin-bottom:2px}
+.an-note p{font-size:12px;color:var(--sub);line-height:1.7}
+.an-note p .num{font-size:11px}
+
+.rowstate-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;margin-top:44px}
+.rowstate-card{border-radius:24px;overflow:hidden;
+  box-shadow:inset 0 1px 1px rgba(255,255,255,.85), inset 0 0 0 1px rgba(255,255,255,.32), 0 10px 28px -14px oklch(32% 0.05 255/.2)}
+.rowstate-card .rs-cap{padding:10px 15px;font-size:11px;color:var(--sub);display:flex;justify-content:space-between;
+  background:rgba(255,255,255,.6)}
+.rowstate-card .rs-cap .en{font-family:var(--serif);font-style:italic;color:var(--faint)}
+.rowstate-card .rs-body{
+  background:linear-gradient(150deg, rgba(255,255,255,.82), rgba(255,255,255,.6));
+  -webkit-backdrop-filter:blur(20px) saturate(1.7); backdrop-filter:blur(20px) saturate(1.7);
+  color:var(--ink)}
+
+/* ---------- 交互规范 ---------- */
+.spec-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:22px;align-items:start}
+.spec-card{
+  border-radius:26px;padding:26px 28px;
+  background:linear-gradient(140deg, rgba(255,255,255,.66), rgba(255,255,255,.38));
+  -webkit-backdrop-filter:blur(18px) saturate(1.6); backdrop-filter:blur(18px) saturate(1.6);
+  box-shadow:inset 0 1px 1px rgba(255,255,255,.9), inset 0 0 0 1px rgba(255,255,255,.35),
+    0 16px 40px -18px oklch(32% 0.05 255/.25);
+}
+.spec-card h4{font-size:15px;font-weight:600;letter-spacing:-0.01em;margin-bottom:16px;display:flex;align-items:center;gap:9px}
+.spec-card h4 .serif-i{color:var(--acc);font-size:15px}
+.gest{display:flex;gap:13px;padding:11px 0;box-shadow:inset 0 -1px 0 rgba(20,30,60,.06)}
+.gest:last-child{box-shadow:none}
+.gest .g-ico{
+  width:34px;height:34px;flex:none;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--acc);
+  background:rgba(255,255,255,.7);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.95), inset 0 0 0 1px rgba(255,255,255,.55), 0 3px 8px -2px oklch(30% 0.05 255/.18);
+}
+.gest b{font-size:12.5px;font-weight:600;display:block}
+.gest p{font-size:11.5px;color:var(--sub);line-height:1.65;margin-top:1px}
+.gest p .num{font-size:10.5px;color:var(--acc);font-weight:600}
+table.motion{width:100%;border-collapse:collapse;font-size:11.5px}
+table.motion th{font-size:9.5px;letter-spacing:.1em;color:var(--faint);text-align:left;padding:0 10px 9px;font-weight:600}
+table.motion td{padding:8.5px 10px;box-shadow:inset 0 1px 0 rgba(20,30,60,.06);color:var(--sub);vertical-align:top}
+table.motion td:first-child{color:var(--ink);font-weight:600;white-space:nowrap}
+table.motion .num{color:var(--acc);font-size:10.5px;font-weight:600}
+.snapviz{margin-top:20px;position:relative;height:190px;border-radius:20px;overflow:hidden;
+  background:
+    radial-gradient(280px 160px at 50% 50%, oklch(60% 0.06 300/.35), transparent 75%),
+    linear-gradient(160deg, oklch(72% 0.05 320/.5), oklch(66% 0.05 230/.5));
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.4)}
+.snapviz .hint{position:absolute;background:oklch(52% 0.115 205/.35)}
+.snapviz .hint.l{left:0;top:0;bottom:0;width:26px}
+.snapviz .hint.r{right:0;top:0;bottom:0;width:26px}
+.snapviz .hint.t{top:0;left:0;right:0;height:26px}
+.snapviz .hint.b{bottom:0;left:0;right:0;height:26px}
+.snapviz .lbl{position:absolute;font-size:9px;color:rgba(255,255,255,.85);font-weight:500;letter-spacing:.06em;
+  background:rgba(20,30,60,.25);padding:2px 8px;border-radius:99px;
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.snapviz .center-orb{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}
+.snapviz .arrow{position:absolute;color:rgba(255,255,255,.9);font-size:13px}
+
+/* ---------- 令牌 ---------- */
+.token-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(152px,1fr));gap:12px}
+.tok{border-radius:18px;overflow:hidden;background:rgba(255,255,255,.62);
+  box-shadow:inset 0 1px 1px rgba(255,255,255,.85), inset 0 0 0 1px rgba(255,255,255,.4), 0 8px 22px -12px oklch(32% 0.05 255/.22)}
+.tok .swatch{height:54px;position:relative;box-shadow:inset 0 -1px 0 rgba(20,30,60,.06)}
+.tok .swatch span{position:absolute;right:8px;bottom:6px;font-size:8.5px;font-weight:500;
+  color:oklch(30% 0.02 255/.75);background:rgba(255,255,255,.7);padding:1px 7px;border-radius:99px}
+.tok .meta{padding:9px 12px}
+.tok .meta b{font-size:11px;display:block}
+.tok .meta span{font-size:10px;color:var(--faint)}
+.type-scale{display:flex;flex-direction:column}
+.ts-row{display:flex;align-items:baseline;gap:22px;padding:13px 4px;box-shadow:inset 0 -1px 0 rgba(20,30,60,.06)}
+.ts-row:last-child{box-shadow:none}
+.ts-row .ts-label{width:168px;flex:none;font-size:10px;color:var(--faint)}
+.codebox{margin-top:26px;border-radius:20px;background:oklch(22% 0.02 255);padding:22px 24px;overflow-x:auto;
+  box-shadow:0 20px 44px -18px oklch(30% 0.05 255/.5), inset 0 1px 0 rgba(255,255,255,.14)}
+.codebox pre{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:11px;line-height:1.9;color:oklch(75% 0.015 255)}
+.codebox .c-k{color:oklch(80% 0.08 195)}
+.codebox .c-v{color:oklch(85% 0.06 90)}
+.codebox .c-c{color:oklch(58% 0.015 255)}
+
+/* ---------- Footer ---------- */
+footer{margin-top:110px;padding:20px 0 70px}
+.next-steps{display:grid;grid-template-columns:repeat(auto-fill,minmax(235px,1fr));gap:14px;margin-top:24px}
+.next{border-radius:20px;padding:17px 19px;background:linear-gradient(140deg, rgba(255,255,255,.66), rgba(255,255,255,.4));
+  box-shadow:inset 0 1px 1px rgba(255,255,255,.9), inset 0 0 0 1px rgba(255,255,255,.35), 0 10px 26px -14px oklch(32% 0.05 255/.22);
+  transition:transform var(--dur-base) var(--ease-out)}
+.next:hover{transform:translateY(-3px)}
+.next b{font-size:12.5px;display:block;margin-bottom:4px}
+.next span{font-size:11px;color:var(--sub);line-height:1.7;display:block}
+.foot-meta{margin-top:40px;font-size:11px;color:var(--faint);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+
+/* ---------- 连接服务 / API Key ---------- */
+.subhead{display:flex;align-items:center;gap:9px;padding:12px 16px;cursor:pointer;font-size:12px;font-weight:600;color:var(--sub)}
+.subhead:hover{color:var(--ink)}
+.subhead .back{width:22px;height:22px;border-radius:9999px;display:flex;align-items:center;justify-content:center;
+  background:rgba(255,255,255,.6);box-shadow:inset 0 1px 0 rgba(255,255,255,.9), inset 0 0 0 1px rgba(255,255,255,.55)}
+.mat-dark .subhead .back{background:rgba(255,255,255,.1);box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}
+.subcount{margin-left:auto;font-size:10px;color:var(--faint);font-weight:500}
+.mrow{display:flex;align-items:center;gap:11px;padding:10px 16px;box-shadow:inset 0 -1px 0 rgba(20,30,60,.05)}
+.mrow:last-child{box-shadow:none}
+.mkey{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:10px;color:var(--sub);
+  background:rgba(20,30,60,.06);padding:2.5px 8px;border-radius:7px;white-space:nowrap}
+.mat-dark .mkey{background:rgba(255,255,255,.1);color:rgba(255,255,255,.75)}
+.dot{width:6px;height:6px;border-radius:50%;display:inline-block;flex:none}
+.dot.ok{background:oklch(62% 0.15 155);box-shadow:0 0 0 3px oklch(62% 0.15 155/.18)}
+.dot.off{background:rgba(20,30,60,.2)}
+.mat-dark .dot.off{background:rgba(255,255,255,.25)}
+.macts{display:flex;gap:6px;margin-left:auto}
+.qp-row-sub .lnk{color:var(--acc);font-weight:500;cursor:pointer;text-decoration:none}
+.qp-row-sub .lnk:hover{text-decoration:underline}
+.mrow.flash{animation:rowflash 1.4s var(--ease-out)}
+@keyframes rowflash{0%{background:oklch(62% 0.15 155/.16)}100%{background:transparent}}
+.chippick{display:flex;flex-wrap:wrap;gap:7px;padding:4px 16px 14px}
+.pick{display:flex;align-items:center;gap:7px;padding:5.5px 11px 5.5px 6px;border-radius:9999px;cursor:pointer;
+  border:none;font-family:var(--sans);font-size:11px;font-weight:500;color:var(--ink);
+  background:rgba(20,30,60,.05);box-shadow:inset 0 0 0 1px rgba(20,30,60,.06);
+  transition:all var(--dur-fast) var(--ease-out)}
+.pick .p-chip{width:20px;height:20px;border-radius:7px;display:flex;align-items:center;justify-content:center;
+  font-size:9px;font-weight:600;color:#fff}
+.pick.on{background:rgba(255,255,255,.95);box-shadow:inset 0 1px 0 rgba(255,255,255,.95), inset 0 0 0 1px rgba(255,255,255,.6), 0 4px 12px -4px oklch(30% 0.05 255/.3)}
+.pick.on .p-chip{outline:2px solid var(--acc);outline-offset:1.5px}
+.mat-dark .pick{background:rgba(255,255,255,.08);color:rgba(255,255,255,.85)}
+.mat-dark .pick.on{background:rgba(255,255,255,.16)}
+.field{padding:2px 16px 6px}
+.field label{display:block;font-size:10px;color:var(--faint);letter-spacing:.04em;margin-bottom:6px;font-weight:500}
+.keybox{position:relative}
+.keybox input{
+  width:100%;border:none;outline:none;font-family:ui-monospace,"SF Mono",Menlo,monospace;
+  font-size:12px;color:var(--ink);padding:11px 68px 11px 13px;border-radius:13px;
+  background:rgba(255,255,255,.75);
+  box-shadow:inset 0 1px 2px rgba(20,30,60,.08), inset 0 0 0 1px rgba(20,30,60,.08);
+  transition:box-shadow var(--dur-fast) var(--ease-out);
+}
+.keybox input:focus{box-shadow:inset 0 1px 2px rgba(20,30,60,.06), inset 0 0 0 1.5px var(--acc)}
+.keybox input.err{box-shadow:inset 0 1px 2px rgba(20,30,60,.06), inset 0 0 0 1.5px var(--crit);animation:shake .4s var(--ease-out)}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.mat-dark .keybox input{background:rgba(255,255,255,.1);color:#fff}
+.keybox .kbtns{position:absolute;right:7px;top:50%;transform:translateY(-50%);display:flex;gap:4px}
+.kbtn{border:none;cursor:pointer;width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+  background:rgba(20,30,60,.06);color:var(--sub);transition:all var(--dur-fast) var(--ease-out)}
+.kbtn:hover{background:rgba(20,30,60,.1);color:var(--ink)}
+.kbtn svg{width:13px;height:13px}
+.fhint{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--faint);margin-top:6px;min-height:15px;line-height:1.5}
+.fhint.ok{color:oklch(50% 0.12 155)}
+.fhint.err{color:var(--crit)}
+details.adv{margin:6px 16px 0;border-radius:13px;background:rgba(20,30,60,.045)}
+.mat-dark details.adv{background:rgba(255,255,255,.07)}
+details.adv summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px;font-size:10.5px;font-weight:500;color:var(--sub);padding:9px 12px}
+details.adv summary::-webkit-details-marker{display:none}
+details.adv[open] summary{color:var(--ink)}
+details.adv .advbody{padding:2px 12px 11px}
+.advbody input{width:100%;border:none;outline:none;font-size:11px;color:var(--ink);padding:8.5px 11px;border-radius:10px;
+  background:rgba(255,255,255,.8);box-shadow:inset 0 0 0 1px rgba(20,30,60,.08);font-family:var(--sans)}
+.mat-dark .advbody input{background:rgba(255,255,255,.1);color:#fff}
+.btnrow{padding:12px 16px 4px;display:flex;gap:8px}
+.btn-save{
+  flex:1;border:none;cursor:pointer;font-family:var(--sans);font-size:12px;font-weight:600;color:#fff;
+  padding:10px 0;border-radius:9999px;
+  background:linear-gradient(180deg, oklch(58% 0.12 205), oklch(48% 0.115 205));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.35), 0 8px 20px -6px oklch(52% 0.115 205/.6);
+  transition:all var(--dur-fast) var(--ease-out);
+}
+.btn-save:hover{transform:translateY(-1px)}
+.btn-save:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btn-save.testing{pointer-events:none}
+.spin{width:13px;height:13px;border-radius:50%;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;
+  display:inline-block;vertical-align:-2px;margin-right:7px;animation:q-spin .8s linear infinite}
+.secnote{margin:10px 16px 16px;padding:11px 13px;border-radius:14px;background:rgba(20,30,60,.045)}
+.mat-dark .secnote{background:rgba(255,255,255,.07)}
+.secnote .t{display:flex;align-items:center;gap:6px;font-size:10.5px;font-weight:600;color:var(--ink);margin-bottom:6px}
+.secnote ul{list-style:none;display:flex;flex-direction:column;gap:4px}
+.secnote li{font-size:10px;color:var(--sub);display:flex;gap:8px;line-height:1.55}
+.secnote li::before{content:"";width:4px;height:4px;border-radius:50%;background:var(--acc);margin-top:6px;flex:none}
+
+@media (max-width: 960px){
+  .hero{grid-template-columns:1fr}
+  .hero-orb{min-height:260px}
+  .demo-grid{grid-template-columns:1fr}
+  .controls{position:static;flex-direction:row;flex-wrap:wrap}
+  .ctrl-card{flex:1;min-width:210px}
+  .anatomy{grid-template-columns:1fr}
+  .spec-grid{grid-template-columns:1fr}
+  section{padding:76px 0 6px}
+  .topnav{display:none}
+}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="logo"><span class="logo-orb" id="logoOrb"></span>quorb</div>
+  <nav class="topnav">
+    <a href="#demo">演示</a><a href="#states">球体</a><a href="#anatomy">面板</a><a href="#interaction">交互</a><a href="#tokens">配方</a>
+  </nav>
+  <span class="ver">v0.2 · Liquid Glass</span>
+</header>
+
+<main class="wrap">
+
+  <!-- ================= HERO ================= -->
+  <div class="hero">
+    <div>
+      <div class="kicker">QUORB · 浏览器扩展 · 液态玻璃</div>
+      <h1>所有 AI 用量，<br>凝在一颗<span class="serif-i">玻璃球</span>里。</h1>
+      <p class="lede">quorb 悬浮在任意页面之上：外环是聚合余量，指尖拖动、边缘磁吸；单击展开，逐家查看 OpenAI、Claude、Gemini、Cursor 的积分、调用与重置节奏。</p>
+      <p class="meta">Chrome MV3<i>·</i>Shadow DOM<i>·</i>亮 / 暗双材质自适应<i>·</i>零依赖</p>
+    </div>
+    <div class="walltile">
+      <div class="scene"><i class="b1"></i><i class="b2"></i><i class="b3"></i><i class="b4"></i></div>
+      <div class="hero-tip">剩余 <span class="num">5,718</span> / 8,400 积分 · 7 家服务</div>
+      <div style="position:absolute;left:50%;top:54%;transform:translate(-50%,-50%)" id="heroOrb"></div>
+    </div>
+  </div>
+
+  <!-- ================= 1. 实时演示 ================= -->
+  <section id="demo">
+    <div class="slabel"><span class="no">01</span><span class="en">Live demo</span><span class="zh">现 场 演 示</span></div>
+    <h2>拖一拖，吸上去；点一下，展开来。</h2>
+    <p class="sec-sub">下面是一块会流动的极光壁纸。直接<b>拖动球体</b>——靠近边缘会亮起吸附光带，松手磁吸停靠；<b>单击球体</b>展开面板；在右侧切换用量状态与页面场景，观察玻璃在亮暗两种材质间的切换。</p>
+
+    <div class="demo-grid">
+      <div class="stage-frame lq">
+        <div class="stage-titlebar"><span class="dot"></span><span>quorb-orb.demo · pointer events · magnetic dock</span></div>
+        <div class="stage env-scene" id="stage">
+          <div class="wall-base" id="wallBase"></div>
+          <div class="scene" id="sceneBlobs"><i class="b1"></i><i class="b2"></i><i class="b3"></i><i class="b4"></i></div>
+          <div class="fake-chrome">
+            <div class="urlbox" id="stageUrl">quorb · new tab</div>
+          </div>
+
+          <div class="env-doc" id="envPane" style="display:none"></div>
+
+          <div class="snap-hint left" id="hintL"></div>
+          <div class="snap-hint right" id="hintR"></div>
+          <div class="snap-hint top" id="hintT"></div>
+          <div class="snap-hint bottom" id="hintB"></div>
+
+          <div class="q-orb-slot" id="orbSlot"></div>
+          <div class="q-panel closing" id="qPanel" role="dialog" aria-label="quorb 用量详情"></div>
+        </div>
+      </div>
+
+      <aside class="controls">
+        <div class="ctrl-card">
+          <h5>用量状态</h5>
+          <div class="seg-dark" id="ctrlState">
+            <button class="ctrl-btn on" data-st="normal">正常 68%</button>
+            <button class="ctrl-btn" data-st="warn">警告 33%</button>
+            <button class="ctrl-btn" data-st="crit">危急 9%</button>
+            <button class="ctrl-btn" data-st="syncing">同步中</button>
+            <button class="ctrl-btn" data-st="unset">未连接</button>
+          </div>
+        </div>
+        <div class="ctrl-card">
+          <h5>页面场景</h5>
+          <div class="seg-dark" id="ctrlEnv">
+            <button class="ctrl-btn on" data-env="scene">极光壁纸</button>
+            <button class="ctrl-btn" data-env="light">白昼文章</button>
+            <button class="ctrl-btn" data-env="dark">深夜编辑器</button>
+          </div>
+        </div>
+        <div class="ctrl-card">
+          <h5>快捷操作</h5>
+          <div class="seg-dark">
+            <button class="ctrl-btn" id="btnDockR">吸附右缘</button>
+            <button class="ctrl-btn" id="btnDockL">吸附左缘</button>
+            <button class="ctrl-btn" id="btnFree">恢复悬浮</button>
+            <button class="ctrl-btn" id="btnErr">模拟授权过期</button>
+          </div>
+        </div>
+        <div class="ctrl-card">
+          <h5>这一版的材质</h5>
+          <p class="ctrl-note">玻璃是<b>清透</b>的：顶部一条高光棱线、边缘一圈粉蓝色散、悬停时一道镜面扫光。壁纸流动时，能看见球体背后的色彩被<b>模糊与提饱和</b>——这才是「液态」。</p>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ================= 2. 球体状态 ================= -->
+  <section id="states">
+    <div class="slabel"><span class="no">02</span><span class="en">The orb</span><span class="zh">球 体 状 态</span></div>
+    <h2>一颗球的状态语言</h2>
+    <p class="sec-sub">球体必须在一眼之内传达「余量 + 健康度」：外环颜色、球心数字、徽标、动效四个通道叠加表达，互不冲突。深夜页面上自动切换为暗形态玻璃。</p>
+    <div class="state-grid" id="stateGrid"></div>
+  </section>
+
+  <!-- ================= 3. 面板结构 ================= -->
+  <section id="anatomy">
+    <div class="slabel"><span class="no">03</span><span class="en">The panel</span><span class="zh">单 击 之 后</span></div>
+    <h2>展开面板解剖</h2>
+    <p class="sec-sub">单击球体，从球体位置缩放展开 348px 玻璃面板。信息层级：聚合余量 → 分段构成 → 服务明细 → 同步状态；三次点击内可到达任何一家服务的重置日期。</p>
+
+    <div class="anatomy">
+      <div class="anatomy-stage lq">
+        <div class="scene"><i class="b2"></i><i class="b3"></i></div>
+        <div id="anatomyPanel" style="position:relative"></div>
+      </div>
+      <div class="an-note-list">
+        <div class="an-note"><span class="n">1</span><div><b>面板头</b><p>球标 + 刷新 / 设置 / 关闭，圆形玻璃按钮。高 <span class="num">44px</span>，热区由 padding 补足 <span class="num">44px</span>。</p></div></div>
+        <div class="an-note"><span class="n">2</span><div><b>聚合余量</b><p><span class="num">40px</span> 大数字 = 配额型服务的加权余量；右侧是绝对值。分段条按各家配额占比着色，段内填充即该家余量。</p></div></div>
+        <div class="an-note"><span class="n">3</span><div><b>页签</b><p>iOS 式分段控件：总览 / 趋势 / 设置。趋势页为近 7 日堆叠柱；设置收录尺寸、球心内容、位置记忆、吸附灵敏度、刷新频率。</p></div></div>
+        <div class="an-note"><span class="n">4</span><div><b>服务明细行</b><p>品牌玻璃芯片 + 余量% 与 <span class="num">64px</span> 迷你条。按余额计费的服务不显示百分比，改显金额与虚线条。单击行展开详情。</p></div></div>
+        <div class="an-note"><span class="n">5</span><div><b>同步脚注</b><p>「今天 14:32 同步 · 自动刷新 10 分钟」——显示确切时刻，不随时间失真；异常时整行转琥珀并附「重新同步」。</p></div></div>
+      </div>
+    </div>
+
+    <div class="rowstate-grid" id="rowStateGrid"></div>
+
+    <div class="slabel" style="margin-top:76px"><span class="no">+</span><span class="en">API keys</span><span class="zh">连 接 服 务</span></div>
+    <h2>填写 Key，记录在本机</h2>
+    <p class="sec-sub">入口在面板脚注「管理服务」。密钥只在填写与验证的瞬间出现在界面上，此后永远打码；仅保存在本机 <span class="num">chrome.storage.local</span>，不进入云同步、不进入任何备份。下面是完整流程与全部状态。</p>
+    <div class="rowstate-grid" id="connectGrid"></div>
+  </section>
+
+  <!-- ================= 4. 交互规范 ================= -->
+  <section id="interaction">
+    <div class="slabel"><span class="no">04</span><span class="en">Gesture &amp; motion</span><span class="zh">指 尖 的 分 寸</span></div>
+    <h2>手势规则与动效预算</h2>
+    <p class="sec-sub">所有行为围绕一个原则：<b>拖动是显式意图，点击是查询意图</b>，以 6px 位移阈值区分，避免误触。</p>
+
+    <div class="spec-grid">
+      <div class="spec-card">
+        <h4><span class="serif-i">Gestures</span> 手势与规则</h4>
+        <div class="gest"><div class="g-ico">✛</div><div><b>拖动</b><p>Pointer Events 全端统一；跟手无缓动，松手距任一边缘 <span class="num">≤ 20px</span> 磁吸停靠，否则原位停留（<span class="num">280ms spring</span> 回弹）。</p></div></div>
+        <div class="gest"><div class="g-ico">▣</div><div><b>边缘吸附</b><p>停靠时球体没入边缘约 <span class="num">52%</span> 呈月牙；悬停滑出至露出 <span class="num">72%</span>，同时该侧边缘亮起青色光带。</p></div></div>
+        <div class="gest"><div class="g-ico">◉</div><div><b>单击</b><p>展开 / 收起面板。面板从球体位置缩放展开（transform-origin 指向球心），越界自动翻转到视口内侧。</p></div></div>
+        <div class="gest"><div class="g-ico">⇥</div><div><b>双击</b><p>「悬浮 ↔ 就近停靠」一键切换，不想拖拽时的快捷路径。</p></div></div>
+        <div class="gest"><div class="g-ico">⎋</div><div><b>键盘与无障碍</b><p>球体 <span class="num">role=button</span>，aria-label 随数据更新；<span class="num">Esc</span> 收起面板，Tab 在面板内遍历，焦点环 2px 青色。</p></div></div>
+        <div class="gest"><div class="g-ico">◍</div><div><b>材质自适应</b><p>注入时采样页面亮度：亮页用 Clear 玻璃（墨色数字），暗页切 Dusk 玻璃（白色数字），切换带 <span class="num">260ms</span> 交叉淡化。</p></div></div>
+
+        <div class="snapviz">
+          <div class="hint l"></div><div class="hint r"></div><div class="hint t"></div><div class="hint b"></div>
+          <span class="lbl" style="left:34px;top:8px">SNAP ≤ 20px</span>
+          <span class="lbl" style="right:34px;bottom:8px">DOCK · 52% HIDDEN</span>
+          <div class="center-orb" id="snapOrb"></div>
+          <span class="arrow" style="left:calc(50% + 44px);top:calc(50% - 10px)">→</span>
+          <span class="arrow" style="right:30px;top:calc(50% - 10px)">▣</span>
+        </div>
+      </div>
+
+      <div class="spec-card">
+        <h4><span class="serif-i">Motion</span> 动效预算 · GPU only</h4>
+        <table class="motion">
+          <tr><th>场景</th><th>属性</th><th>时长 · 缓动</th></tr>
+          <tr><td>球体悬停</td><td>scale 1.07 + 镜面扫光</td><td><span class="num">180ms</span> / 扫光 1s</td></tr>
+          <tr><td>环数值变化</td><td>stroke-dashoffset</td><td><span class="num">600ms</span> ease-out</td></tr>
+          <tr><td>面板展开 / 收起</td><td>scale .94→1 + fade</td><td><span class="num">260ms</span> spring</td></tr>
+          <tr><td>磁吸停靠</td><td>translate + 月牙收拢</td><td><span class="num">400ms</span> spring</td></tr>
+          <tr><td>同步扫掠</td><td>环形短弧旋转</td><td><span class="num">1.1s</span> linear ∞</td></tr>
+          <tr><td>危急呼吸</td><td>珊瑚光环扩散</td><td><span class="num">2.2s</span> ease-out ∞</td></tr>
+          <tr><td>明细行展开</td><td>内容显隐 + chevron 90°</td><td><span class="num">260ms</span> spring</td></tr>
+          <tr><td>壁纸流影</td><td>光斑位移动画</td><td><span class="num">16–24s</span> alternate ∞</td></tr>
+        </table>
+        <p class="ctrl-note" style="margin-top:16px">同屏并发动画 ≤ 3；所有动效在 <b>prefers-reduced-motion</b> 下退化为直接切换（本页已内置）。危急呼吸是唯一常驻循环，仅出现在余量 ≤ 20% 时。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 5. 设计令牌 ================= -->
+  <section id="tokens">
+    <div class="slabel"><span class="no">05</span><span class="en">The recipe</span><span class="zh">玻 璃 的 配 方</span></div>
+    <h2>液态玻璃配方 — OKLCH 全局色板</h2>
+    <p class="sec-sub">玻璃自带清透底盘而不跟随页面主题：亮形态「Clear」用于大多数页面，暗形态「Dusk」在深色页面出现。品牌青只出现在数据通道——环、高亮、图表，永不与页面争夺注意力。</p>
+
+    <div class="token-grid" id="tokenGrid"></div>
+
+    <div class="spec-grid" style="margin-top:44px">
+      <div class="spec-card">
+        <h4><span class="serif-i">Type</span> 字体与字号</h4>
+        <div class="type-scale">
+          <div class="ts-row"><span class="ts-label">标题 · SemiBold 600 / -2.8%</span><span style="font-size:22px;font-weight:600;letter-spacing:-0.028em">积分余量 68%</span></div>
+          <div class="ts-row"><span class="ts-label">Hero 数字 · 600 / tnum</span><span class="num" style="font-size:24px;font-weight:600;letter-spacing:-0.03em">5,718 / 8,400</span></div>
+          <div class="ts-row"><span class="ts-label">面板正文 · 400–600</span><span style="font-size:13px">OpenAI · Plus · 剩余 80%</span></div>
+          <div class="ts-row"><span class="ts-label">辅助文字 · 400 / 10px</span><span style="font-size:10.5px;color:var(--faint)">12 天后重置 · 今日 86 次</span></div>
+          <div class="ts-row"><span class="ts-label">点睛 · Instrument Serif Italic</span><span class="serif-i" style="font-size:19px;color:var(--acc)">Liquid, quite literally.</span></div>
+        </div>
+        <p class="ctrl-note" style="margin-top:14px">生产包不加载外部字体：全部回退 <b>system-ui</b>，数字 <b>font-variant-numeric: tabular-nums</b>，零布局抖动。点睛衬线仅用于设计稿排版。</p>
+      </div>
+      <div class="spec-card">
+        <h4><span class="serif-i">Depth</span> 圆角 · 阴影 · 层级</h4>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:18px" id="radiusRow"></div>
+        <table class="motion">
+          <tr><th>层级</th><th>z-index</th><th>说明</th></tr>
+          <tr><td>球体</td><td class="num">2^31-1</td><td>置顶一切页面元素</td></tr>
+          <tr><td>面板</td><td class="num">同层 +1</td><td>与球体同一 Shadow Root</td></tr>
+          <tr><td>吸附光带</td><td class="num">球体 -1</td><td>拖动接近边缘时短暂出现</td></tr>
+        </table>
+        <p class="ctrl-note" style="margin-top:14px">阴影三层：<b>大柔影</b>（负扩散 + 大模糊）+ <b>近影</b> + <b>内侧高光棱线</b>；圆角 4 的倍数（6/12/16/20/24/30）。</p>
+      </div>
+    </div>
+
+    <div class="codebox"><pre><span class="c-c">/* quorb liquid-glass — shadow DOM 内生效 */</span>
+<span class="c-k">--acc</span>:        <span class="c-v">oklch(52% 0.115 205)</span>;  <span class="c-c">/* 冰海青 — 环 / 高亮 / 主按钮 */</span>
+<span class="c-k">--acc-2</span>:      <span class="c-v">oklch(72% 0.085 190)</span>;  <span class="c-c">/* 环渐变末端 */</span>
+<span class="c-k">--warn</span>:       <span class="c-v">oklch(72% 0.135 75)</span>;   <span class="c-c">/* 余量 21–45% */</span>
+<span class="c-k">--crit</span>:       <span class="c-v">oklch(60% 0.19 22)</span>;    <span class="c-c">/* 余量 ≤ 20% / 授权异常 */</span>
+<span class="c-k">--glass-clear</span>: <span class="c-v">linear-gradient(140deg, rgba(255,255,255,.66), rgba(255,255,255,.34) 48%, rgba(255,255,255,.48))</span>;
+<span class="c-k">--glass-blur</span>:  <span class="c-v">blur(22px) saturate(1.8) brightness(1.04)</span>;
+<span class="c-k">--rim</span>:         <span class="c-v">inset 0 1px 1px rgba(255,255,255,.9)  /* 顶部高光棱线 */
+              , inset 0 0 0 1px rgba(255,255,255,.32)  /* 折射缝 */
+              , 0 24px 60px -18px oklch(32% 0.05 255/.3)</span>;  <span class="c-c">/* 柔影 */</span>
+<span class="c-k">--dispersion</span>:  <span class="c-v">mask 1px 边缘 · 粉 oklch(78% 0.09 340) → 蓝 oklch(80% 0.07 230)</span>;  <span class="c-c">/* 色散 */</span></pre></div>
+  </section>
+
+</main>
+
+<footer class="wrap">
+  <div class="slabel"><span class="no">→</span><span class="en">Next</span><span class="zh">设 计 定 稿 之 后</span></div>
+  <div class="next-steps">
+    <div class="next"><b>① 数据采集层</b><span>background service worker 定时拉取各服务用量接口；host_permissions 声明；token 存 local/session。</span></div>
+    <div class="next"><b>② 聚合口径</b><span>配额型按「余量/总量」加权；余额型（按量计费）只展示金额，不参与百分比聚合。</span></div>
+    <div class="next"><b>③ 工程落地</b><span>单 Shadow DOM 挂载球体 + 面板；本页配方即 Shadow 内样式，无构建依赖。</span></div>
+    <div class="next"><b>④ 图标品牌化</b><span>服务芯片由字母 Monogram 替换为官方 SVG 单色图标，玻璃珠化处理。</span></div>
+  </div>
+  <div class="foot-meta"><span>quorb © 2026 · Liquid Glass UI v0.2</span><span>OKLCH · Clear / Dusk glass · zero dependency</span></div>
+</footer>
+
+<script>
+/* ============================================================
+   数据模型
+   ============================================================ */
+const PROVIDERS = [
+  { id:'openai',  name:'OpenAI',   plan:'Plus',     color:'oklch(64% 0.11 175)', mono:'O',  quota:2000, rem:{normal:80, warn:38, crit:8},  today:'86 次',  reset:'12 天' },
+  { id:'claude',  name:'Claude',   plan:'Pro',      color:'oklch(66% 0.12 50)',  mono:'C',  quota:1000, rem:{normal:41, warn:24, crit:6},  today:'132 次', reset:'8 天'  },
+  { id:'gemini',  name:'Gemini',   plan:'Advanced', color:'oklch(62% 0.12 260)', mono:'G',  quota:2000, rem:{normal:78, warn:50, crit:12}, today:'210 次', reset:'3 天'  },
+  { id:'cursor',  name:'Cursor',   plan:'Pro',      color:'oklch(58% 0.02 90)',  mono:'Cu', quota:1500, rem:{normal:43, warn:8,  crit:3},  today:'64 次',  reset:'21 天' },
+  { id:'kimi',    name:'Kimi',     plan:'Moonshot', color:'oklch(64% 0.15 330)', mono:'K',  quota:700,  rem:{normal:93, warn:36, crit:8},  today:'18 次',  reset:'5 天'  },
+  { id:'glm',     name:'GLM',      plan:'Coding',   color:'oklch(60% 0.15 250)', mono:'GL', quota:1200, rem:{normal:71, warn:14, crit:4},  today:'64 条',  reset:'滚动', multi:true,
+    windows:{ h5:{label:'5 小时窗口', pct:71, limit:200, unit:'条', reset:'2h 14m'}, week:{label:'本周', pct:86, limit:1200, unit:'条', reset:'周一 00:00 · 3 天'} } },
+  { id:'deepseek',name:'DeepSeek', plan:'API',      color:'oklch(56% 0.14 275)', mono:'D',  quota:null, balance:'¥46.20', today:'¥6.8',  reset:'—' },
+];
+let curState = 'normal';
+let errMode  = false;
+let matDark  = false;   // 当前玻璃材质
+
+function agg(){
+  let rem = 0, tot = 0, today = 0;
+  PROVIDERS.forEach(p => {
+    if (p.quota){ rem += Math.round(p.quota * (curState==='unset' ? 0 : (p.rem[curState] ?? p.rem.normal)) / 100); tot += p.quota; }
+    if (!p.today.startsWith('¥')) today += parseInt(p.today);
+  });
+  return { rem, tot, pct: tot ? Math.round(rem / tot * 100) : 0, today };
+}
+const fmt = n => n.toLocaleString('en-US');
+const GLOWS = { ok:'oklch(72% 0.085 190/.5)', warn:'oklch(72% 0.135 75/.55)', crit:'oklch(60% 0.19 22/.55)' };
+/* 多窗口配额（如 GLM：5 小时滚动窗口 + 周配量）
+   口径：对外只呈现「最紧窗口」= min(各窗口余量%)，球心、聚合、警示色都跟随它 */
+function provPct(p, st){ return p.rem ? (p.rem[st] ?? p.rem.normal) : 0; }
+function winState(p){
+  const scale = provPct(p, curState) / p.rem.normal;
+  const ws = Object.entries(p.windows).map(([k,w])=>{
+    const pct = Math.min(100, Math.round(w.pct * scale));
+    return { ...w, pct, left: Math.round(w.limit * pct / 100) };
+  });
+  const min = Math.min(...ws.map(w=>w.pct));
+  return ws.map(w=>({...w, binding: w.pct===min}));
+}
+
+/* ============================================================
+   球体渲染
+   ============================================================ */
+let uid = 0;
+function orbHTML(o = {}){
+  const { pct = 68, size = 56, syncing = false, critGlow = false, unset = false, badge = false, mat = 'light' } = o;
+  const id = 'qg' + (++uid);
+  const C = 2 * Math.PI * 25;
+  const p = unset ? 0 : pct;
+  const off = (C * (1 - p / 100)).toFixed(1);
+  const ring = unset ? 'ring-none' : pct <= 20 ? 'ring-crit' : pct <= 45 ? 'ring-warn' : 'ring-ok';
+  const glow = unset ? 'transparent' : pct <= 20 ? GLOWS.crit : pct <= 45 ? GLOWS.warn : GLOWS.ok;
+  const center = unset
+    ? '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 8h3l2-4 2 8 2-4h3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" opacity=".55"/></svg>'
+    : `<span class="orb-num">${Math.round(p)}</span><span class="orb-pct">%</span>`;
+  return `<div class="orb ${ring} ${mat==='dark'?'mat-dark':''}${syncing ? ' is-syncing' : ''}${critGlow ? ' is-crit' : ''}" style="width:${size}px;height:${size}px;--glow:${glow}" role="img" aria-label="quorb 剩余 ${p}%">
+    <svg class="orb-svg" viewBox="0 0 56 56" aria-hidden="true">
+      <defs><linearGradient id="${id}" x1="0" y1="1" x2="1" y2="0">
+        <stop offset="0" stop-color="oklch(52% 0.115 205)"/><stop offset="1" stop-color="oklch(72% 0.085 190)"/>
+      </linearGradient></defs>
+      <circle class="orb-track" cx="28" cy="28" r="25"/>
+      <circle class="orb-prog" cx="28" cy="28" r="25" stroke="url(#${id})" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${off}"/>
+    </svg>
+    <div class="orb-core">${center}</div>
+    <span class="sheen"></span>
+    ${badge ? '<span class="orb-badge">!</span>' : ''}
+  </div>`;
+}
+
+/* ============================================================
+   面板渲染
+   ============================================================ */
+const ICONS = {
+  refresh:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 3v6h-6"/></svg>',
+  gear:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3.2"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7 7 0 0 0-2-1.2L14 3h-4l-.5 2.6a7 7 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 2 1.2L10 21h4l.5-2.6a7 7 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.2z"/></svg>',
+  close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg>',
+  chev:  '<svg class="qp-chev" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M9 5l7 7-7 7"/></svg>',
+  spark: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 2l2.2 6.8L21 11l-6.8 2.2L12 20l-2.2-6.8L3 11l6.8-2.2z"/></svg>',
+  arrowl:'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
+  clip:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="7" width="12" height="13" rx="2.5"/><path d="M16 7V5.5A2.5 2.5 0 0 0 13.5 3h-7A2.5 2.5 0 0 0 4 5.5v11A2.5 2.5 0 0 0 6.5 19H8"/></svg>',
+  eye:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.8"/></svg>',
+  eyeoff:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4l16 16"/><path d="M9.9 5.3A11 11 0 0 1 12 5.1c6.5 0 10 6.9 10 6.9a17.5 17.5 0 0 1-3.2 4M6.1 7A16.6 16.6 0 0 0 2 12s3.5 6.9 10 6.9a10.4 10.4 0 0 0 4.2-.85"/><path d="M9.9 9.9a2.9 2.9 0 0 0 4.1 4.1"/></svg>',
+  lock:  '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2.5"/><path d="M8 11V7.5a4 4 0 0 1 8 0V11"/></svg>',
+};
+
+function rowHead(p){
+  const isCash = !p.quota;
+  const isErr = errMode && p.id === 'kimi';
+  const pctv = provPct(p, curState);
+  const lvl = pctv <= 20 ? 'crit' : pctv <= 45 ? 'low' : '';
+  const sub = isErr ? '授权已过期' : isCash ? '按余额计费'
+    : p.multi ? `双窗口 · 最紧 5h · ${p.windows.h5.reset}后重置`
+    : `今日 ${p.today} · ${p.reset}后重置`;
+  return `
+  <div class="qp-row-head">
+    <div class="qp-chip" style="background:linear-gradient(180deg, oklch(from ${p.color} calc(l + .06) c h), ${p.color})">${p.mono}</div>
+    <div class="qp-row-info">
+      <div class="qp-row-name">${p.name}${isErr ? '<span class="plan" style="color:var(--crit);background:oklch(60% 0.19 22/.1)">异常</span>' : `<span class="plan">${p.plan}</span>`}</div>
+      <div class="qp-row-sub">${sub}</div>
+    </div>
+    <div class="qp-row-val ${isCash ? 'val-cash' : pctv <= 20 ? 'val-crit' : pctv <= 45 ? 'val-warn' : ''}">
+      <span class="pct ${lvl}">${isErr ? '--' : isCash ? p.balance : pctv + '%'}</span>
+      <div class="bar">${isErr ? '' : `<i style="width:${isCash ? 100 : pctv}%"></i>`}</div>
+    </div>
+    ${ICONS.chev}
+  </div>`;
+}
+function multiDetail(p, vis){
+  const items = winState(p).map(w=>`
+    <div class="win ${w.binding?'binding':''}">
+      <div class="w-head"><span class="w-label">${w.label}</span>${w.binding?'<span class="w-bind">最紧</span>':''}</div>
+      <div class="w-bar"><i style="width:${w.pct}%"></i></div>
+      <div class="w-meta"><span class="num">${fmt(w.left)}</span> <span class="mu">/ ${fmt(w.limit)} ${w.unit} · 剩 <span class="num">${w.pct}%</span></span></div>
+      <div class="w-reset">${w.reset}${w.binding?' · 决定当前可用量':''}</div>
+    </div>`).join('');
+  return `<div class="qp-detail"${vis?' style="display:block;padding:0"':''}>
+    <div class="wins">${items}</div>
+    <div class="acts"><span class="qp-mini acc">打开控制台 ↗</span><span class="qp-mini">暂停追踪</span></div>
+  </div>`;
+}
+function rowDetail(p){
+  if (p.multi) return multiDetail(p);
+  const isErr = errMode && p.id === 'kimi';
+  if (isErr){
+    return `<div class="qp-detail" style="display:block">
+      <div class="qp-errline">401 · refresh_token 失效，无法读取用量</div>
+      <div class="acts"><span class="qp-mini acc">重新授权</span><span class="qp-mini">打开 platform.moonshot.cn</span></div>
+    </div>`;
+  }
+  const rp = p.quota ? Math.round(p.quota * (p.rem[curState] ?? p.rem.normal) / 100) : 0;
+  return `<div class="qp-detail">
+    <div class="grid">
+      <div class="kv"><div class="k">今日用量</div><div class="v">${p.today}</div></div>
+      <div class="kv"><div class="k">重置</div><div class="v">${p.reset === '—' ? '按量计费' : p.reset + '后'}</div></div>
+      <div class="kv"><div class="k">${p.quota ? '剩余配额' : '当前余额'}</div><div class="v">${p.quota ? fmt(rp) + ' / ' + fmt(p.quota) : p.balance}</div></div>
+      <div class="kv"><div class="k">状态</div><div class="v" style="color:var(--acc)">正常</div></div>
+    </div>
+    <div class="acts"><span class="qp-mini acc">打开控制台 ↗</span><span class="qp-mini">暂停追踪</span></div>
+  </div>`;
+}
+function skeletonRows(){
+  return Array.from({length:5}).map(() =>
+    `<div class="sk-row"><div class="sk sk-circle"></div><div style="flex:1"><div class="sk sk-line w1"></div><div class="sk sk-line w2"></div></div><div class="sk sk-line w3"></div></div>`
+  ).join('');
+}
+function trendPane(){
+  const days = ['一','二','三','四','五','六','日'];
+  const data = [62,84,45,91,120,74,34];
+  const share = [0.30,0.18,0.26,0.14,0.12];
+  const colors = PROVIDERS.filter(p=>p.quota).map(p=>p.color);
+  const max = Math.max(...data);
+  const cols = data.map((v,i)=>`<div class="t-col" title="周${days[i]} · ${v} 次">${
+    share.map((s,j)=>`<i style="height:${(v*s/max*100).toFixed(1)}%;background:${colors[j]}"></i>`).join('')
+  }</div>`).join('');
+  const legend = PROVIDERS.filter(p=>p.quota).map(p=>`<em><i style="background:${p.color}"></i>${p.name}</em>`).join('');
+  return `<div class="qp-trend">
+    <div class="t-head"><span class="t-title">近 7 日调用</span><span class="t-total">共 574 次 · 峰值 120</span></div>
+    <div class="t-chart">${cols}</div>
+    <div class="t-x">${days.map(d=>`<span>${d}</span>`).join('')}</div>
+    <div class="t-legend">${legend}</div>
+  </div>`;
+}
+function settingsPane(){
+  const seg = (label, opts, onIdx) => `<div class="set-group"><div class="set-label">${label}</div>
+    <div class="seg">${opts.map((o,i)=>`<button class="${i===onIdx?'on':''}">${o}</button>`).join('')}</div></div>`;
+  return `<div class="qp-set">
+    ${seg('球体尺寸', ['标准 56','紧凑 44'], 0)}
+    ${seg('球心显示', ['余量 %','剩余积分','仅图标'], 0)}
+    ${seg('位置记忆', ['全局','按站点'], 0)}
+    ${seg('玻璃材质', ['自动','Clear','Dusk'], 0)}
+    <div class="set-group"><div class="set-label">吸附灵敏度</div>
+      <div class="set-slider"><input type="range" min="8" max="48" value="20"><span class="num">20px</span></div></div>
+  </div>`;
+}
+
+let panelTab = 'overview';
+/* ---- 连接状态与密钥（演示数据）----
+   生产实现：keyStore 存 chrome.storage.local（绝不使用 storage.sync），
+   界面中永远只出现打码形式（sk-proj-••••7f2a），明文仅在输入框存在的瞬间可见。 */
+const keyStore = { openai:'sk-proj-••••7f2a', claude:'sk-ant-••••3c9d' };
+let subView = { v:null };   // {v:'manage'} | {v:'connect', pid, from, testing}
+
+function secNoteHTML(short){
+  const items = short
+    ? ['仅保存在本机 chrome.storage.local','不上传服务器 · 不进入云同步','界面中永远打码显示']
+    : ['仅保存在本机 chrome.storage.local，不使用 storage.sync','不进入任何云备份；移除服务即销毁','界面中永远打码（sk-proj-••••7f2a），不明文回显','用量请求只发往各服务官方域名','可随时在「管理服务」中删除'];
+  return `<div class="secnote"><div class="t">${ICONS.lock} 密钥的安全边界</div><ul>${items.map(i=>`<li>${i}</li>`).join('')}</ul></div>`;
+}
+
+function managePane(){
+  const rows = PROVIDERS.map(p => {
+    const k = keyStore[p.id];
+    return `<div class="mrow ${subView.flash===p.id?'flash':''}">
+      <div class="qp-chip" style="background:linear-gradient(180deg, oklch(from ${p.color} calc(l + .06) c h), ${p.color})">${p.mono}</div>
+      <div class="qp-row-info">
+        <div class="qp-row-name">${p.name}</div>
+        <div class="qp-row-sub">${k
+          ? `已连接 · <a class="lnk" data-edit="${p.id}">编辑</a> · <a class="lnk" data-del="${p.id}">删除</a>`
+          : '未连接 · 填写 API Key 后开始追踪'}</div>
+      </div>
+      ${k ? `<span class="mkey">${k}</span><span class="dot ok"></span>`
+          : `<span class="dot off"></span><div class="macts"><button class="qp-mini acc" data-add="${p.id}">＋ 添加</button></div>`}
+    </div>`;
+  }).join('');
+  const connected = PROVIDERS.filter(p=>keyStore[p.id]).length;
+  return `
+  <div class="qp-head">
+    <span class="logo-orb">${orbHTML({pct:agg().pct, size:20, syncing:curState==='syncing', mat:matDark?'dark':'light'})}</span>
+    <span class="name">quorb</span><span class="grow"></span>
+    <button class="qp-iconbtn" id="pClose" title="关闭">${ICONS.close}</button>
+  </div>
+  <div class="subhead" data-back="1"><span class="back">${ICONS.arrowl}</span>管理服务<span class="subcount">已连接 ${connected} / ${PROVIDERS.length}</span></div>
+  <div class="qp-body">${rows}</div>
+  ${secNoteHTML(false)}
+  <div class="qp-foot"><span>密钥与本机绑定 · 不参与云同步</span><span class="grow"></span><a href="#tokens" data-back="1">返回用量 →</a></div>`;
+}
+
+function connectPane(){
+  const pid = subView.pid;
+  const p = PROVIDERS.find(x=>x.id===pid);
+  return `
+  <div class="qp-head">
+    <span class="logo-orb">${orbHTML({pct:agg().pct, size:20, mat:matDark?'dark':'light'})}</span>
+    <span class="name">quorb</span><span class="grow"></span>
+    <button class="qp-iconbtn" id="pClose" title="关闭">${ICONS.close}</button>
+  </div>
+  <div class="subhead" data-back="1"><span class="back">${ICONS.arrowl}</span>${pid ? '连接 · ' + p.name + (keyStore[pid] ? '（替换密钥）' : '') : '添加服务'}</div>
+  <div class="chippick">${PROVIDERS.map(x=>`
+    <button class="pick ${x.id===pid?'on':''}" data-pick="${x.id}">
+      <span class="p-chip" style="background:linear-gradient(180deg, oklch(from ${x.color} calc(l + .06) c h), ${x.color})">${x.mono}</span>${x.name}${keyStore[x.id]?' ✓':''}
+    </button>`).join('')}
+  </div>
+  ${pid ? `
+  <div class="field">
+    <label>${p.name} API Key${keyStore[pid] ? ' · 当前 ' + keyStore[pid] : ''}</label>
+    <div class="keybox">
+      <input id="keyInput" type="password" autocomplete="off" spellcheck="false" placeholder="${keyStore[pid] ? '输入新密钥以替换 ' + keyStore[pid] : 'sk-...'}">
+      <div class="kbtns">
+        <button class="kbtn" id="kPaste" title="粘贴">${ICONS.clip}</button>
+        <button class="kbtn" id="kEye" title="显示 / 隐藏">${ICONS.eye}</button>
+      </div>
+    </div>
+    <div class="fhint" id="keyHint">支持 sk- 开头的密钥，长度至少 8 位；保存前将向官方接口验证</div>
+  </div>
+  <details class="adv">
+    <summary>⚙ 高级 · 自定义接口地址（代理 / 中转）</summary>
+    <div class="advbody"><input type="text" placeholder="https://api.openai.com/v1（留空使用官方地址）"></div>
+  </details>
+  <div class="btnrow"><button class="btn-save" id="btnSave" disabled>验证并保存</button></div>
+  ${secNoteHTML(true)}
+  ` : `<div class="qp-empty" style="padding-top:14px"><p>先在上方选择一家服务，<br>再填写它的 API Key。</p></div><div style="padding:0 16px 16px">${secNoteHTML(true)}</div>`}`;
+}
+
+function panelHTML(){
+  if (subView.v === 'manage') return managePane();
+  if (subView.v === 'connect') return connectPane();
+  const a = agg();
+  if (curState === 'unset'){
+    return `
+    <div class="qp-head">
+      <span class="logo-orb">${orbHTML({unset:true,size:20,mat:matDark?'dark':'light'})}</span>
+      <span class="name">quorb</span><span class="grow"></span>
+      <button class="qp-iconbtn">${ICONS.close}</button>
+    </div>
+    <div class="qp-empty">
+      <div class="ghost">${ICONS.spark}</div>
+      <h4>连接你的第一个 AI 服务</h4>
+      <p>quorb 支持追踪 OpenAI、Claude、Gemini、<br>Cursor、DeepSeek 等服务的积分与用量。</p>
+      <button class="qp-cta" id="emptyAdd">＋ 添加服务</button>
+    </div>
+    <div class="qp-foot"><span>数据仅存本地 · 不上传</span><span class="grow"></span><a href="#anatomy">了解更多</a></div>`;
+  }
+  const bigCls = a.pct <= 20 ? 'crit' : a.pct <= 45 ? 'warn' : '';
+  const segs = PROVIDERS.filter(p=>p.quota).map(p=>{
+    const w = p.quota / a.tot * 100;
+    const rp = Math.round(p.quota * (p.rem[curState] ?? p.rem.normal) / 100);
+    return `<div class="seg" style="width:${w}%" title="${p.name}"><i style="width:${rp/p.quota*100}%;background:linear-gradient(90deg, oklch(from ${p.color} calc(l + .05) c h), ${p.color})"></i></div>`;
+  }).join('');
+  const legend = PROVIDERS.map(p=>`<em><i style="background:${p.color}"></i>${p.name}</em>`).join('');
+  const syncLabel = curState === 'syncing' ? '正在同步…' : fmtSyncTime(d.snapshot?.ts || d.status?.ts) + ' 同步 · 自动刷新 10 分钟';
+  const tight = PROVIDERS.filter(p=>p.multi && provPct(p,curState)<=45)
+    .map(p=>`<div class="tight">最紧窗口：GLM 5 小时 ${provPct(p,curState)}% · ${p.windows.h5.reset}后重置，聚合已按它计算</div>`).join('');
+  const body = curState === 'syncing' ? skeletonRows()
+    : panelTab === 'trend' ? trendPane()
+    : panelTab === 'settings' ? settingsPane()
+    : PROVIDERS.map(p => `<div class="qp-row" data-pid="${p.id}">${rowHead(p)}${rowDetail(p)}</div>`).join('');
+  const syncing = curState === 'syncing';
+  return `
+  <div class="qp-head">
+    <span class="logo-orb">${orbHTML({pct:a.pct, size:20, syncing, mat:matDark?'dark':'light'})}</span>
+    <span class="name">quorb</span><span class="grow"></span>
+    <button class="qp-iconbtn" id="pRefresh" title="立即同步">${ICONS.refresh}</button>
+    <button class="qp-iconbtn" id="pGear" title="设置">${ICONS.gear}</button>
+    <button class="qp-iconbtn" id="pClose" title="关闭">${ICONS.close}</button>
+  </div>
+  <div class="qp-hero">
+    <div class="row1">
+      <span class="big ${bigCls}">${a.pct}</span><span class="unit">% 剩余</span>
+      <span class="balance">剩余 <b>${fmt(a.rem)}</b> / ${fmt(a.tot)} 积分<br>今日 ${a.today} 次调用</span>
+    </div>
+    <div class="qp-segbar">${segs}</div>
+    <div class="legend">${legend}<em><i style="background:repeating-linear-gradient(45deg, rgba(20,30,60,.2) 0 3px, transparent 3px 6px)"></i>DeepSeek 按余额</em></div>
+    ${tight}
+  </div>
+  <div class="qp-tabs">
+    <button class="qp-tab ${panelTab==='overview'?'on':''}" data-tab="overview">总览</button>
+    <button class="qp-tab ${panelTab==='trend'?'on':''}" data-tab="trend">趋势</button>
+    <button class="qp-tab ${panelTab==='settings'?'on':''}" data-tab="settings">设置</button>
+  </div>
+  <div class="qp-body" id="qpBody">${body}</div>
+  <div class="qp-foot">
+    <span style="${curState==='syncing' ? 'color:oklch(58% 0.12 70);font-weight:600' : ''}">${syncLabel}</span>
+    <span class="grow"></span>
+    <a href="#anatomy" id="pManage">管理服务 →</a>
+  </div>`;
+}
+
+/* ============================================================
+   演示舞台：拖拽 / 吸附 / 面板开合
+   ============================================================ */
+const stage   = document.getElementById('stage');
+const slot    = document.getElementById('orbSlot');
+const panel   = document.getElementById('qPanel');
+const hints   = { left:document.getElementById('hintL'), right:document.getElementById('hintR'), top:document.getElementById('hintT'), bottom:document.getElementById('hintB') };
+const ORB = 56;
+let pos = { x: 430, y: 210 };
+let docked = null, dockBase = null, panelOpen = false, drag = null;
+
+function stageRect(){ return stage.getBoundingClientRect(); }
+(function initClamp(){
+  const r = stage.getBoundingClientRect();
+  pos.x = Math.min(Math.max(pos.x, 8), Math.max(8, r.width - ORB - 8));
+  pos.y = Math.min(Math.max(pos.y, 8), Math.max(8, r.height - ORB - 8));
+})();
+function dockOffset(side){
+  return { left:{x:-ORB*0.52, y:(stageRect().height-ORB)/2}, right:{x:stageRect().width-ORB*0.48, y:(stageRect().height-ORB)/2},
+           top:{x:(stageRect().width-ORB)/2, y:-ORB*0.52}, bottom:{x:(stageRect().width-ORB)/2, y:stageRect().height-ORB*0.48} }[side];
+}
+function renderPos(anim){
+  slot.classList.toggle('dock-anim', !!anim);
+  slot.style.transform = `translate(${pos.x}px, ${pos.y}px)`;
+}
+function nearestEdge(){
+  const r = stageRect();
+  const cx = pos.x + ORB/2, cy = pos.y + ORB/2;
+  const d = { left:cx, right:r.width-cx, top:cy, bottom:r.height-cy };
+  return Object.entries(d).sort((a,b)=>a[1]-b[1])[0];
+}
+function renderOrbContent(){
+  const a = agg();
+  slot.innerHTML = orbHTML({
+    pct: a.pct, syncing: curState === 'syncing', critGlow: curState === 'crit',
+    unset: curState === 'unset', badge: errMode, mat: matDark ? 'dark' : 'light',
+  }) + `<div class="q-tip ${matDark?'mat-dark':''}">${
+    curState === 'unset' ? '尚未连接服务<br>点击球体开始配置'
+    : curState === 'syncing' ? '正在同步…'
+    : `剩余 <span class="num">${fmt(a.rem)}</span> / ${fmt(a.tot)} 积分<br><b>${PROVIDERS.length}</b> 家服务 · 最紧 <b>GLM 5h</b> 窗口`
+  }</div>`;
+}
+function setHint(side, on){ hints[side]?.classList.toggle('on', !!on); }
+function clearHints(){ Object.keys(hints).forEach(k => setHint(k,false)); }
+
+slot.addEventListener('pointerdown', e => {
+  if (e.button !== undefined && e.button !== 0) return;
+  e.preventDefault();
+  slot.setPointerCapture(e.pointerId);
+  drag = { sx:e.clientX, sy:e.clientY, ox:pos.x, oy:pos.y, moved:false };
+  slot.classList.add('dragging');
+});
+slot.addEventListener('pointermove', e => {
+  if (!drag) return;
+  const dx = e.clientX - drag.sx, dy = e.clientY - drag.sy;
+  if (!drag.moved && Math.hypot(dx,dy) > 6){
+    drag.moved = true;
+    if (docked){ docked = null; dockBase = null; slot.classList.remove('docked'); }
+    slot.querySelector('.orb')?.classList.add('is-drag');
+    closePanel();
+  }
+  if (drag.moved){
+    const r = stageRect();
+    pos.x = Math.min(Math.max(drag.ox + dx, 2), r.width - ORB - 2);
+    pos.y = Math.min(Math.max(drag.oy + dy, 2), r.height - ORB - 2);
+    renderPos(false);
+    clearHints();
+    const n = nearestEdge();
+    if (n[1] <= 20) setHint(n[0], true);
+  }
+});
+slot.addEventListener('pointerup', () => {
+  if (!drag) return;
+  slot.classList.remove('dragging');
+  slot.querySelector('.orb')?.classList.remove('is-drag');
+  const wasDrag = drag.moved; drag = null;
+  clearHints();
+  if (wasDrag){
+    const n = nearestEdge();
+    if (n[1] <= 20) dockTo(n[0]);
+    else renderPos(true);
+  } else panelOpen ? closePanel() : openPanel();
+});
+slot.addEventListener('pointercancel', () => { drag = null; slot.classList.remove('dragging'); clearHints(); });
+slot.addEventListener('mouseenter', () => {
+  if (!docked || drag || !dockBase) return;
+  const off = { left:[16,0], right:[-16,0], top:[0,16], bottom:[0,-16] }[docked];
+  pos = { x: dockBase.x + off[0], y: dockBase.y + off[1] };
+  renderPos(true);
+});
+slot.addEventListener('mouseleave', () => {
+  if (!docked || drag || !dockBase) return;
+  pos = { ...dockBase };
+  renderPos(true);
+});
+
+function dockTo(side){
+  pos = { ...dockOffset(side) };
+  dockBase = { ...pos };
+  docked = side;
+  slot.classList.add('docked');
+  renderPos(true);
+}
+function undock(){
+  const r = stageRect();
+  docked = null; dockBase = null;
+  slot.classList.remove('docked');
+  pos = { x: Math.min(r.width - ORB - 40, 420), y: 170 };
+  renderPos(true);
+}
+
+function placePanel(){
+  const r = stageRect();
+  const pw = Math.min(348, r.width - 24);
+  const ph = Math.min(560, r.height - 24);
+  let x, y;
+  const orbCx = pos.x + ORB/2;
+  x = orbCx > r.width/2 ? pos.x - pw - 12 : pos.x + ORB + 12;
+  x = Math.min(Math.max(x, 12), r.width - pw - 12);
+  y = pos.y + ORB + 12;
+  if (y + ph > r.height - 12) y = pos.y - ph - 12;
+  y = Math.min(Math.max(y, 12), r.height - ph - 12);
+  panel.style.left = x + 'px';
+  panel.style.top  = y + 'px';
+  const ox = (pos.x + ORB/2 - x) / pw, oy = (pos.y + ORB/2 - y) / ph;
+  panel.style.transformOrigin = `${(ox*100).toFixed(0)}% ${(oy*100).toFixed(0)}%`;
+}
+function openPanel(){
+  renderPanel();
+  panelOpen = true;
+  panel.classList.remove('closing');
+}
+function closePanel(){
+  if (!panelOpen) return;
+  panelOpen = false;
+  panel.classList.add('closing');
+}
+function renderPanel(){
+  panel.innerHTML = panelHTML();
+  panel.classList.toggle('mat-dark', matDark);
+  panel.querySelector('#pClose')?.addEventListener('click', closePanel);
+  panel.querySelector('#pGear')?.addEventListener('click', () => { panelTab='settings'; renderPanel(); });
+  panel.querySelector('#pRefresh')?.addEventListener('click', () => { setState('syncing'); setTimeout(()=>setState(prevSyncBack), 1400); });
+  panel.querySelectorAll('.qp-tab').forEach(t => t.addEventListener('click', () => { panelTab = t.dataset.tab; renderPanel(); }));
+  panel.querySelectorAll('.qp-row').forEach(row => {
+    row.querySelector('.qp-row-head')?.addEventListener('click', () => row.classList.toggle('open'));
+  });
+  panel.querySelector('#pManage')?.addEventListener('click', e => { e.preventDefault(); subView = {v:'manage', from:'main'}; renderPanel(); });
+  panel.querySelector('#emptyAdd')?.addEventListener('click', () => { subView = {v:'connect', pid:null, from:'main'}; renderPanel(); });
+  wireSub();
+  placePanel();
+}
+function wireSub(){
+  panel.querySelectorAll('[data-back]').forEach(b => b.addEventListener('click', e => {
+    e.preventDefault();
+    subView = (subView.v==='connect' && subView.from==='manage') ? {v:'manage'} : {v:null};
+    renderPanel();
+  }));
+  panel.querySelectorAll('[data-add],[data-edit]').forEach(b => b.addEventListener('click', () => {
+    subView = {v:'connect', pid: b.dataset.add || b.dataset.edit, from:'manage'}; renderPanel();
+  }));
+  panel.querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => {
+    delete keyStore[b.dataset.del]; renderPanel();
+  }));
+  panel.querySelectorAll('[data-pick]').forEach(b => b.addEventListener('click', () => {
+    subView.pid = b.dataset.pick; renderPanel();
+  }));
+  if (subView.flash){ const f = subView.flash; setTimeout(()=>{ if (subView.flash===f) subView.flash=null; }, 1500); }
+
+  const inp = panel.querySelector('#keyInput');
+  if (!inp) return;
+  const hint = panel.querySelector('#keyHint');
+  const save = panel.querySelector('#btnSave');
+  const eye  = panel.querySelector('#kEye');
+  const paste= panel.querySelector('#kPaste');
+  const chk = () => {
+    const v = inp.value.trim(); const ok = v.length >= 8;
+    save.disabled = !ok;
+    hint.className = 'fhint' + (ok ? ' ok' : '');
+    hint.textContent = ok ? '格式正确 · 将向官方接口验证后，仅保存在本机' : '支持 sk- 开头的密钥，长度至少 8 位；保存前将向官方接口验证';
+  };
+  inp.addEventListener('input', () => { inp.classList.remove('err'); chk(); });
+  eye.addEventListener('click', () => {
+    const show = inp.type === 'password';
+    inp.type = show ? 'text' : 'password';
+    eye.innerHTML = show ? ICONS.eyeoff : ICONS.eye;
+  });
+  paste.addEventListener('click', () => {
+    if (navigator.clipboard?.readText) navigator.clipboard.readText().then(t => { inp.value = (t||'').trim(); chk(); inp.focus(); }).catch(()=>{ inp.focus(); });
+  });
+  save.addEventListener('click', () => {
+    const v = inp.value.trim();
+    if (v.length < 8 || subView.testing) return;
+    subView.testing = true;
+    const p = PROVIDERS.find(x=>x.id===subView.pid);
+    save.classList.add('testing');
+    save.innerHTML = '<span class="spin"></span>正在验证…';
+    hint.className = 'fhint';
+    hint.textContent = `正在与 ${p ? p.name : ''} 官方接口核对密钥，密钥不会离开本机日志…`;
+    setTimeout(() => {
+      const pid = subView.pid;
+      keyStore[pid] = v.slice(0, v.startsWith('sk-ant') ? 6 : 7) + '••••' + v.slice(-4);
+      subView = { v:'manage', from:null, flash: pid };
+      if (curState === 'unset') setState('normal');   // 首次连接后离开空状态
+      renderPanel();
+    }, 1300);
+  });
+}
+stage.addEventListener('pointerdown', e => {
+  if (panelOpen && !panel.contains(e.target) && !slot.contains(e.target)) closePanel();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closePanel(); });
+
+/* ============================================================
+   控制台
+   ============================================================ */
+let prevSyncBack = 'normal';
+function setState(st){
+  if (st === 'syncing' && curState !== 'syncing') prevSyncBack = curState;
+  curState = st;
+  renderOrbContent();
+  if (panelOpen) renderPanel();
+  document.querySelectorAll('#ctrlState .ctrl-btn').forEach(b => b.classList.toggle('on', b.dataset.st === st));
+}
+document.querySelectorAll('#ctrlState .ctrl-btn').forEach(b => b.addEventListener('click', () => setState(b.dataset.st)));
+
+function setEnv(env){
+  stage.classList.remove('env-scene','env-light','env-dark');
+  stage.classList.add('env-' + env);
+  matDark = (env === 'dark');
+  const pane = document.getElementById('envPane');
+  const blobs = document.getElementById('sceneBlobs');
+  const base = document.getElementById('wallBase');
+  const url = document.getElementById('stageUrl');
+  base.style.display = (env === 'scene') ? '' : 'none';
+  if (env === 'scene'){
+    pane.style.display = 'none'; blobs.style.display = '';
+    url.textContent = 'quorb · new tab';
+  } else if (env === 'light'){
+    blobs.style.display = 'none'; pane.style.display = '';
+    pane.className = 'env-doc';
+    pane.innerHTML = '<h3>Understanding rate limits &amp; quota</h3><div class="ln w85"></div><div class="ln w60"></div><div class="ln w75"></div><div class="env-img"></div><div class="ln w85"></div><div class="ln w60"></div>';
+    url.textContent = 'developer.openai.com/docs/quota';
+  } else {
+    blobs.style.display = 'none'; pane.style.display = '';
+    pane.className = 'env-code';
+    pane.innerHTML = `<em>const</em> usage = <em>await</em> quorb.<b>snapshot</b>()<br><u>// OpenAI · Claude · Gemini · Cursor · Kimi</u><br>{ provider: <b>'openai'</b>,&nbsp; remaining: <b>1600</b>, quota: 2000 },<br>{ provider: <b>'claude'</b>,&nbsp; remaining: <u>410</u>,&nbsp; quota: 1000 },<br>{ provider: <b>'gemini'</b>,&nbsp; remaining: 1560, quota: 2000 },<br>{ provider: <b>'cursor'</b>,&nbsp; remaining: <u>645</u>,&nbsp; quota: 1500 },<br><em>export default</em> <b>aggregate</b>(usage)&nbsp; <u>// → 68%</u>`;
+    url.textContent = 'editor.local — quorb.service.ts';
+  }
+  renderOrbContent();
+  if (panelOpen) renderPanel();
+  document.querySelectorAll('#ctrlEnv .ctrl-btn').forEach(b => b.classList.toggle('on', b.dataset.env === env));
+}
+document.querySelectorAll('#ctrlEnv .ctrl-btn').forEach(b => b.addEventListener('click', () => setEnv(b.dataset.env)));
+
+document.getElementById('btnDockR').addEventListener('click', () => dockTo('right'));
+document.getElementById('btnDockL').addEventListener('click', () => dockTo('left'));
+document.getElementById('btnFree').addEventListener('click', undock);
+document.getElementById('btnErr').addEventListener('click', e => {
+  errMode = !errMode;
+  e.target.classList.toggle('on', errMode);
+  e.target.textContent = errMode ? '授权过期（开启中）' : '模拟授权过期';
+  renderOrbContent();
+  if (panelOpen) renderPanel();
+});
+
+/* ============================================================
+   图鉴 / 解剖 / 令牌渲染
+   ============================================================ */
+function buildGallery(){
+  const g = document.getElementById('stateGrid');
+  const cell = (holder, cap, cls='') => `<div class="orb-cell ${cls}"><div class="holder">${holder}</div><div class="cap">${cap}</div></div>`;
+  const items = [
+    cell(`<div class="free-orb">${orbHTML({pct:68})}</div>`, `<b>自由悬浮 · 充裕</b><span class="num">&gt; 45% · 青色玻璃环</span>`),
+    cell(`<div class="free-orb">${orbHTML({pct:68})}<div class="q-tip">剩余 <span class="num">5,718</span> / 8,400 积分<br><b>7</b> 家服务 · 最紧 <b>GLM 5h</b> 窗口</div></div>`, `<b>悬停 · 镜面扫光</b><span class="num">scale 1.07 · 快捷提示</span>`),
+    cell(`<div style="position:relative" data-dragdemo>${orbHTML({pct:68})}</div>`, `<b>拖拽中</b><span class="num">scale 0.94 · 虚线光环</span>`),
+    cell(`<div class="dock-demo right"><div class="edge"></div><div class="orb-pos">${orbHTML({pct:68})}</div></div>`, `<b>停靠 · 右缘</b><span class="num">没入 52% · 悬停滑出 72%</span>`),
+    cell(`<div class="dock-demo top"><div class="edge"></div><div class="orb-pos">${orbHTML({pct:68})}</div></div>`, `<b>停靠 · 顶缘</b><span class="num">悬停时向下滑出</span>`),
+    cell(`<div class="free-orb">${orbHTML({pct:33})}</div>`, `<b>警告 33%</b><span class="num">21–45% · 琥珀环</span>`),
+    cell(`<div class="free-orb">${orbHTML({pct:9})}</div>`, `<b>危急 9%</b><span class="num">≤ 20% · 珊瑚环 + 呼吸</span>`),
+    cell(`<div class="free-orb">${orbHTML({pct:68, syncing:true})}</div>`, `<b>同步中</b><span class="num">1.1s 环形扫掠</span>`),
+    cell(`<div class="free-orb">${orbHTML({pct:68, badge:true})}</div>`, `<b>服务异常</b><span class="num">任一服务授权失效 → 徽标</span>`),
+    cell(`${orbHTML({pct:68, mat:'dark'})}`, `<b>暗形态 · Dusk</b><span class="num">深色页面自动切换</span>`, 'dark-cell'),
+    cell(`<div class="free-orb">${orbHTML({pct:68, size:44})}</div>`, `<b>紧凑模式 44px</b><span class="num">设置中切换</span>`),
+    cell(`<div class="free-orb">${orbHTML({unset:true})}</div>`, `<b>未连接</b><span class="num">虚线环 + 引导面板</span>`),
+  ];
+  g.innerHTML = items.join('');
+  g.querySelector('[data-dragdemo] .orb')?.classList.add('is-drag');
+}
+
+function buildAnatomy(){
+  const a = agg();
+  const segs = PROVIDERS.filter(p=>p.quota).map(p=>{
+    const w = p.quota / a.tot * 100;
+    return `<div class="seg" style="width:${w}%" title="${p.name}"><i style="width:${provPct(p,'normal')}%;background:${p.color}"></i></div>`;
+  }).join('');
+  const rows = PROVIDERS.map(p=>`<div class="qp-row">${rowHead(p)}${p.id==='claude'?rowDetail(p):''}</div>`).join('');
+  document.getElementById('anatomyPanel').innerHTML = `
+    <div class="q-panel" style="position:relative;width:348px">
+      <div class="qp-head">
+        <span class="logo-orb">${orbHTML({pct:a.pct,size:20})}</span>
+        <span class="name">quorb</span><span class="grow"></span>
+        <button class="qp-iconbtn">${ICONS.refresh}</button><button class="qp-iconbtn">${ICONS.gear}</button><button class="qp-iconbtn">${ICONS.close}</button>
+      </div>
+      <div class="qp-hero">
+        <div class="row1"><span class="big">${a.pct}</span><span class="unit">% 剩余</span>
+          <span class="balance">剩余 <b>${fmt(a.rem)}</b> / ${fmt(a.tot)} 积分<br>今日 ${a.today} 次调用</span></div>
+        <div class="qp-segbar">${segs}</div>
+        <div class="legend">${PROVIDERS.map(p=>`<em><i style="background:${p.color}"></i>${p.name}</em>`).join('')}</div>
+      </div>
+      <div class="qp-tabs"><button class="qp-tab on">总览</button><button class="qp-tab">趋势</button><button class="qp-tab">设置</button></div>
+      <div class="qp-body">${rows}</div>
+      <div class="qp-foot"><span>今天 14:32 同步 · 自动刷新 10 分钟</span><span class="grow"></span><a href="#anatomy">管理服务 →</a></div>
+    </div>`;
+}
+
+function buildRowStates(){
+  const g = document.getElementById('rowStateGrid');
+  const mk = (cap, en, body, cls='') => `<div class="rowstate-card ${cls}"><div class="rs-cap"><span>${cap}</span><span class="en">${en}</span></div><div class="rs-body">${body}</div></div>`;
+  const glm = PROVIDERS.find(p=>p.id==='glm');
+  const head = (name, plan, sub, pctv, color, mono, opts={}) => `<div class="qp-row"><div class="qp-row-head">
+    <div class="qp-chip" style="background:linear-gradient(180deg, oklch(from ${color} calc(l + .06) c h), ${color})">${mono}</div>
+    <div class="qp-row-info"><div class="qp-row-name">${name}${opts.errTag?'<span class="plan" style="color:var(--crit);background:oklch(60% 0.19 22/.1)">异常</span>':` <span class="plan">${plan}</span>`}</div>
+    <div class="qp-row-sub">${sub}</div></div>
+    <div class="qp-row-val ${opts.val||''}"><span class="pct ${opts.pctCls||''}">${pctv}</span>
+    <div class="bar">${opts.noBar?'':`<i style="width:${opts.barW??pctv}%"></i>`}</div></div>
+    ${ICONS.chev}</div>${opts.detail||''}</div>`;
+  g.innerHTML =
+    mk('行 · 默认','normal', `<div style="padding:4px 0">${head('OpenAI','Plus','今日 86 次 · 12 天后重置','79%','oklch(64% 0.11 175)','O')}</div>`) +
+    mk('行 · 悬停','hover', `<div style="padding:4px 0;background:rgba(255,255,255,.6)">${head('Gemini','Advanced','今日 210 次 · 3 天后重置','78%','oklch(62% 0.12 260)','G')}</div>`) +
+    mk('行 · 展开详情','expanded', `<div style="padding:4px 0">${head('Claude','Pro','今日 132 次 · 8 天后重置','41%','oklch(66% 0.12 50)','C',{detail:`<div class="qp-detail" style="display:block">
+      <div class="grid"><div class="kv"><div class="k">今日用量</div><div class="v">132 次</div></div><div class="kv"><div class="k">重置</div><div class="v">8 天后</div></div>
+      <div class="kv"><div class="k">剩余配额</div><div class="v">410 / 1,000</div></div><div class="kv"><div class="k">状态</div><div class="v" style="color:var(--acc)">正常</div></div></div>
+      <div class="acts"><span class="qp-mini acc">打开控制台 ↗</span><span class="qp-mini">暂停追踪</span></div></div>`})}</div>`) +
+    mk('行 · 多窗口配额 · GLM','5h + week · 最紧规则', `<div style="display:grid;grid-template-columns:1fr 1.35fr">
+      <div style="padding:4px 0;border-right:1px solid rgba(20,30,60,.06)">${rowHead(glm)}</div>
+      <div style="padding:4px 0">${multiDetail(glm, true)}</div></div>`, 'span2') +
+    mk('行 · 低余量预警','warn ≤45%', `<div style="padding:4px 0">${head('Cursor','Pro','今日 64 次 · 21 天后重置','43%','oklch(58% 0.02 90)','Cu',{val:'val-warn',pctCls:'low'})}</div>`) +
+    mk('行 · 按余额计费','balance', `<div style="padding:4px 0">${head('DeepSeek','API','按量计费 · 今日 ¥6.8','¥46.20','oklch(56% 0.14 275)','D',{val:'val-cash',barW:100})}</div>`) +
+    mk('行 · 授权过期','401 error', `<div style="padding:4px 0">${head('Kimi','Moonshot','授权已过期','--','oklch(64% 0.15 330)','K',{errTag:true,noBar:true,detail:`<div class="qp-detail" style="display:block">
+      <div class="qp-errline">401 · refresh_token 失效，无法读取用量</div>
+      <div class="acts"><span class="qp-mini acc">重新授权</span><span class="qp-mini">打开 platform.moonshot.cn</span></div></div>`})}</div>`) +
+    mk('行 · 骨架屏','loading', `<div style="padding:4px 0">${skeletonRows()}</div>`);
+}
+
+function buildConnect(){
+  const g = document.getElementById('connectGrid');
+  if (!g) return;
+  const mk = (cap,en,body)=>`<div class="rowstate-card"><div class="rs-cap"><span>${cap}</span><span class="en">${en}</span></div><div class="rs-body">${body}</div></div>`;
+  const openai = PROVIDERS[0];
+  g.innerHTML =
+    mk('① 选择服务','pick', `<div class="chippick" style="padding-top:14px">${PROVIDERS.map((x,i)=>`
+      <button class="pick ${i===0?'on':''}"><span class="p-chip" style="background:linear-gradient(180deg, oklch(from ${x.color} calc(l + .06) c h), ${x.color})">${x.mono}</span>${x.name}${keyStore[x.id]?' ✓':''}</button>`).join('')}
+      </div><div class="fhint" style="padding:0 16px 14px">已连接的服务带 ✓ · 选择一家尚未连接的，或点开已连接的直接替换密钥</div>`) +
+    mk('② 填写密钥','input', `<div class="field" style="padding-top:14px"><label>OpenAI API Key</label>
+      <div class="keybox"><input type="password" value="sk-proj-9f2xKq7Lp3vR" readonly><div class="kbtns"><button class="kbtn">${ICONS.clip}</button><button class="kbtn">${ICONS.eye}</button></div></div>
+      <div class="fhint ok">格式正确 · 将向官方接口验证后，仅保存在本机</div></div>
+      <details class="adv"><summary>⚙ 高级 · 自定义接口地址（代理 / 中转）</summary><div class="advbody"><input type="text" placeholder="https://api.openai.com/v1（留空使用官方地址）"></div></details>
+      <div class="btnrow"><button class="btn-save">验证并保存</button></div>`) +
+    mk('③ 验证中','testing', `<div class="field" style="padding-top:14px"><label>OpenAI API Key</label>
+      <div class="keybox"><input type="password" value="sk-proj-9f2xKq7Lp3vR" readonly><div class="kbtns"><button class="kbtn">${ICONS.clip}</button><button class="kbtn">${ICONS.eyeoff}</button></div></div>
+      <div class="fhint">正在与 OpenAI 官方接口核对密钥，密钥不会出现在任何日志…</div></div>
+      <div class="btnrow"><button class="btn-save testing"><span class="spin"></span>正在验证…</button></div>`) +
+    mk('④ 已连接','connected', `<div style="padding:14px 16px 4px">
+      <div class="mrow" style="padding:10px 12px;border-radius:14px;background:rgba(20,30,60,.04);box-shadow:none">
+        <div class="qp-chip" style="background:linear-gradient(180deg, oklch(from ${openai.color} calc(l + .06) c h), ${openai.color})">${openai.mono}</div>
+        <div class="qp-row-info"><div class="qp-row-name">OpenAI</div><div class="qp-row-sub">已连接 · 刷新时自动读取用量</div></div>
+        <span class="mkey">sk-proj-••••7f2a</span><span class="dot ok"></span>
+      </div>
+      <div class="fhint ok" style="padding:9px 2px 0">已连接 · 用量已开始追踪，密钥以打码形式保存</div></div>
+      <div class="macts" style="padding:0 16px 14px"><button class="qp-mini">编辑</button><button class="qp-mini">删除</button></div>`) +
+    mk('⑤ 验证失败','401', `<div class="field" style="padding-top:14px"><label>OpenAI API Key</label>
+      <div class="keybox"><input class="err" type="password" value="sk-bad-xxxxxxxx" readonly><div class="kbtns"><button class="kbtn">${ICONS.clip}</button><button class="kbtn">${ICONS.eye}</button></div></div>
+      <div class="fhint err">401 · 密钥无效或已被撤销，请检查后重试</div></div>
+      <div class="btnrow"><button class="btn-save" style="opacity:.5">重试验证</button></div>`) +
+    mk('⑥ 安全与存储','storage', `<div style="padding:12px 16px 16px">${secNoteHTML(false)}</div>`);
+}
+
+function buildTokens(){
+  const toks = [
+    ['--acc','oklch(52% 0.115 205)','冰海青 · 环/高亮'],
+    ['--acc-2','oklch(72% 0.085 190)','环渐变末端'],
+    ['--warn','oklch(72% 0.135 75)','警告 21–45%'],
+    ['--crit','oklch(60% 0.19 22)','危急/异常'],
+    ['glass · clear','linear-gradient(135deg, rgba(255,255,255,.95), rgba(255,255,255,.45) 55%, rgba(255,255,255,.7))','亮形态底盘'],
+    ['glass · dusk','linear-gradient(135deg, oklch(40% 0.02 260/.88), oklch(24% 0.02 260/.94))','暗形态底盘'],
+    ['ink','oklch(24% 0.02 255)','主文字'],
+    ['sub','oklch(47% 0.015 255)','次级文字'],
+    ['openai','oklch(64% 0.11 175)','服务色 · OpenAI'],
+    ['claude','oklch(66% 0.12 50)','服务色 · Claude'],
+    ['gemini','oklch(62% 0.12 260)','服务色 · Gemini'],
+    ['deepseek','oklch(56% 0.14 275)','服务色 · DeepSeek'],
+    ['kimi','oklch(64% 0.15 330)','服务色 · Kimi'],
+    ['cursor','oklch(58% 0.02 90)','服务色 · Cursor'],
+  ];
+  document.getElementById('tokenGrid').innerHTML = toks.map(([n,v,d]) =>
+    `<div class="tok"><div class="swatch" style="background:${v.startsWith('rgba')||v.startsWith('oklch')?v:'linear-gradient(135deg,'+v+')'}"><span>${v.startsWith('oklch')? v.replace('oklch(','').replace(')','') : v}</span></div>
+     <div class="meta"><b>${n}</b><span>${d}</span></div></div>`).join('');
+  const radii = [['--r-sm','6px',6],['--r','12px',12],['--r-lg','16px',16],['--r-xl','20px',20],['--r-2xl','24–30px',26],['--r-full','9999px',999]];
+  document.getElementById('radiusRow').innerHTML = radii.map(([n,l,v]) =>
+    `<div style="text-align:center"><div style="width:52px;height:52px;border:1.5px solid var(--acc);border-radius:${v===999?'9999px':v+'px'};opacity:.75"></div>
+     <div style="font-size:9px;color:var(--faint);margin-top:6px">${n}</div></div>`).join('');
+}
+
+/* ============================================================
+   启动
+   ============================================================ */
+document.getElementById('logoOrb').innerHTML = orbHTML({pct:68, size:22});
+document.getElementById('heroOrb').innerHTML = orbHTML({pct:68, size:132});
+document.getElementById('snapOrb').innerHTML = orbHTML({pct:68, size:40});
+renderOrbContent();
+renderPos(false);
+buildGallery();
+buildAnatomy();
+buildRowStates();
+buildConnect();
+buildTokens();
+
+window.addEventListener('resize', () => {
+  const r = stageRect();
+  pos.x = Math.min(Math.max(pos.x, -ORB*0.52), r.width - ORB*0.48);
+  pos.y = Math.min(Math.max(pos.y, -ORB*0.52), r.height - ORB*0.48);
+  if (panelOpen) placePanel();
+  renderPos(true);
+});
+</script>
+</body>
+</html>

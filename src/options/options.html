@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>quorb · 设置</title>
+<style>
+:root{
+  --ink:oklch(24% .02 255);--sub:oklch(47% .015 255);--faint:oklch(62% .01 255);
+  --line:rgba(20,30,60,.08);--acc:oklch(52% .115 205);--crit:oklch(60% .19 22);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC",system-ui,sans-serif;
+  font-size:13.5px;line-height:1.7;color:var(--ink);
+  background:radial-gradient(700px 400px at 90% -10%,oklch(93% .03 300/.5),transparent 60%),
+    radial-gradient(600px 420px at -5% 40%,oklch(93% .03 210/.45),transparent 55%),oklch(97.4% .004 100);
+  min-height:100vh;display:flex;justify-content:center;padding:40px 20px}
+.wrap{width:620px}
+h1{font-size:19px;font-weight:600;letter-spacing:-.02em;display:flex;align-items:center;gap:10px;margin-bottom:4px}
+.sub{color:var(--sub);font-size:12px;margin-bottom:26px}
+.card{border-radius:20px;padding:20px 22px;margin-bottom:16px;
+  background:linear-gradient(140deg,rgba(255,255,255,.72),rgba(255,255,255,.45));
+  border:1px solid rgba(255,255,255,.6);
+  box-shadow:0 16px 40px -20px oklch(32% .05 255/.28),inset 0 1px 1px rgba(255,255,255,.9)}
+.card h3{font-size:12px;letter-spacing:.08em;color:var(--sub);font-weight:600;margin-bottom:14px}
+label{display:block;font-size:11px;color:var(--sub);font-weight:500;margin:12px 0 6px}
+select,input[type=text],input[type=password]{width:100%;border:none;outline:none;font-size:13px;color:var(--ink);
+  padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.8);
+  box-shadow:inset 0 1px 2px rgba(20,30,60,.08),inset 0 0 0 1px rgba(20,30,60,.08)}
+input:focus{box-shadow:inset 0 0 0 1.5px var(--acc)}
+.row{display:flex;gap:10px;align-items:center}
+.row .grow{flex:1}
+button.primary{border:none;cursor:pointer;font-size:12.5px;font-weight:600;color:#fff;
+  padding:9px 20px;border-radius:9999px;background:linear-gradient(180deg,oklch(58% .12 205),oklch(48% .115 205));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 8px 20px -6px oklch(52% .115 205/.6)}
+button.primary:disabled{opacity:.5;cursor:not-allowed}
+button.ghost{border:none;cursor:pointer;font-size:12px;font-weight:500;color:var(--sub);
+  padding:8px 16px;border-radius:9999px;background:rgba(20,30,60,.05)}
+button.ghost:hover{color:var(--ink)}
+button.mini{border:none;cursor:pointer;font-size:11px;font-weight:500;color:var(--sub);
+  padding:6px 12px;border-radius:9999px;background:rgba(20,30,60,.06);white-space:nowrap}
+button.mini:hover{color:var(--ink)}
+button.mini.danger{color:var(--crit)}
+button.mini.armed{background:oklch(60% .19 22/.14);color:var(--crit);font-weight:600}
+.hint{font-size:11px;color:var(--faint);margin-top:8px;line-height:1.6}
+.hint.ok{color:oklch(50% .12 155)}
+.hint.err{color:var(--crit)}
+.keyrow{position:relative}
+.keyrow input{padding-right:44px}
+.keyrow .kbtn{position:absolute;right:8px;top:50%;transform:translateY(-50%);border:none;cursor:pointer;
+  width:28px;height:28px;border-radius:9px;background:rgba(20,30,60,.06);color:var(--sub)}
+.keyrow .kbtn:hover{color:var(--ink)}
+pre{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:10.5px;line-height:1.6;
+  background:oklch(22% .02 255);color:oklch(80% .02 255);border-radius:12px;padding:14px;overflow:auto;max-height:260px;white-space:pre-wrap;word-break:break-all}
+.site{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:12.5px}
+.site:last-child{border-bottom:none}
+.site .grow{flex:1}
+.site a{color:var(--crit);cursor:pointer;font-weight:500}
+/* 连接列表 */
+.crow{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--line)}
+.crow:last-child{border-bottom:none}
+.crow .pbadge{width:26px;height:26px;border-radius:9px;flex:none;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,oklch(52% .115 205/.16),oklch(72% .085 190/.16));color:oklch(45% .1 205)}
+.crow .pbadge svg{width:14px;height:14px}
+.crow .cmeta{min-width:0}
+.crow .cname{font-weight:600;font-size:13px;line-height:1.4}
+.crow .csub{font-size:11px;color:var(--faint)}
+.crow .grow{flex:1}
+.crow .cdot{width:8px;height:8px;border-radius:50%;flex:none}
+.cdot.ok{background:oklch(64% .13 155)}
+.cdot.err{background:var(--crit)}
+.cdot.off{background:oklch(55% .02 255/.45)}
+select.pollmin{width:auto;border:none;outline:none;cursor:pointer;font-size:11px;color:var(--sub);
+  padding:6px 8px;border-radius:9px;background:rgba(20,30,60,.06)}
+.segopt{display:flex;gap:6px;flex-wrap:wrap}
+.pbadge{display:inline-flex;width:22px;height:22px;border-radius:8px;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,oklch(52% .115 205/.16),oklch(72% .085 190/.16));color:oklch(45% .1 205)}
+.pbadge svg{width:13px;height:13px}
+.segbtn{border:none;cursor:pointer;font-size:12px;font-weight:500;color:var(--sub);padding:8px 14px;border-radius:9999px;background:rgba(20,30,60,.06)}
+.segbtn.on{background:var(--acc);color:#fff;font-weight:600}
+.wtag{display:inline-block;font-size:9px;font-weight:600;color:var(--acc);background:oklch(52% .115 205/.14);padding:2px 8px;border-radius:99px;margin-left:8px;vertical-align:2px}
+a.link{color:var(--acc);cursor:pointer;text-decoration:none;font-weight:500}
+a.link:hover{text-decoration:underline}
+footer{margin-top:8px;font-size:11px;color:var(--faint);text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1><svg width="22" height="22" viewBox="0 0 56 56" style="vertical-align:-4px"><defs><linearGradient id="g" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="oklch(52% .115 205)"/><stop offset="1" stop-color="oklch(72% .085 190)"/></linearGradient></defs><circle cx="28" cy="28" r="24" fill="rgba(255,255,255,.6)"/><circle cx="28" cy="28" r="22" fill="none" stroke="url(#g)" stroke-width="4.5" stroke-linecap="round" stroke-dasharray="103.7 34.5" transform="rotate(-90 28 28)"/></svg>quorb 设置</h1>
+  <div class="sub">液态玻璃悬浮球 · 多连接用量聚合 —— 密钥仅保存在本机浏览器，不进入任何云同步</div>
+
+  <div class="card">
+    <h3>连接</h3>
+    <div id="connList"><div class="hint">读取中…</div></div>
+    <div class="row" style="margin-top:14px">
+      <button class="primary" id="addBtn">添加连接</button>
+      <span class="grow"></span>
+      <button class="ghost" id="refreshNow">立即同步</button>
+    </div>
+    <div class="hint" id="connHint"></div>
+  </div>
+
+  <div class="card" id="formCard" style="display:none">
+    <h3 id="formTitle">添加连接</h3>
+    <div id="provSeg"></div>
+    <label>连接名称（用于区分多个连接）</label>
+    <input type="text" id="fLabel" autocomplete="off" spellcheck="false">
+    <div id="formFields"></div>
+    <div class="row" style="margin-top:14px">
+      <button class="primary" id="formSave">验证并保存</button>
+      <button class="ghost" id="formCancel">取消</button>
+    </div>
+    <div class="hint" id="formHint">保存前会先调用服务商用量接口验证；验证通过才会写入本机。凭据字段留空表示保持已存值。</div>
+  </div>
+
+  <div class="card">
+    <h3>健康自检</h3>
+    <div class="hint" id="diag" style="margin:0">读取中…</div>
+  </div>
+
+  <div class="card">
+    <h3>球体显示</h3>
+    <div id="sites"><div class="hint">暂无隐藏的站点</div></div>
+  </div>
+
+  <div class="card">
+    <h3>调试</h3>
+    <div class="hint" style="margin-top:0;margin-bottom:10px">
+      用量接口未公开时 quorb 会做防御性字段映射；若某条连接显示「未解析到窗口」，
+      选择该连接查看原始返回，发给开发者即可快速适配。
+    </div>
+    <label>按连接查看原始返回</label>
+    <select id="rawConn"><option>（读取中）</option></select>
+    <details style="margin-top:10px"><summary style="cursor:pointer;font-size:12px;color:var(--sub)">查看原始返回（raw JSON）</summary>
+      <pre id="raw">（尚未同步）</pre>
+    </details>
+  </div>
+
+  <footer>quorb © 2026 · 密钥仅存本机 · <a class="link" id="consoleLink" target="_blank" style="display:none">打开控制台 ↗</a></footer>
+</div>
+<script type="module" src="options.js"></script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><title>quorb sidepanel test</title></head>
+<body>
+<script>window.addEventListener("unhandledrejection",e=>{document.title+="|URE:"+(e.reason&&e.reason.message||"?");});window.addEventListener("error",e=>{document.title="ERR: "+e.message;const d=document.createElement("pre");d.textContent="ERR:"+e.message+"\n"+(e.error&&e.error.stack||"");document.body.appendChild(d);});</script>
+<script src="/test/mock-chrome.js"></script>
+<header><span id="refresh"></span><span id="options"></span></header>
+<div id="main"></div>
+<script type="module" src="/src/sidepanel/panel.js"></script>
+<script>setTimeout(function(){document.title += "|T:" + (document.querySelector('.foot') ? 'RENDERED' : 'EMPTY');}, 1200);</script>
+</body>
+</html>

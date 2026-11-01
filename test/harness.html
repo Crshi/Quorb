@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><title>quorb harness</title></head>
+<body>
+<h1 id="result" style="font-family:-apple-system,sans-serif">running…</h1>
+<pre id="log" style="font:12px ui-monospace,Menlo"></pre>
+<script type="module">
+  import { normalizeUsage, fetchRawUsage, isZhipuPairKey } from '/src/providers/glm.js';
+  import { aggregate, staleThreshold } from '/src/shared/aggregate.js';
+  import { listProviders } from '/src/providers/registry.js';
+  const log = [];
+  try {
+    // —— 实测响应形态：monitor/usage/quota/limit ——
+    const NOW = Date.now();
+    const fixture = {
+      code: 200, msg: '操作成功', success: true,
+      data: {
+        level: 'GLM Coding Pro',
+        limits: [
+          { type: 'CREDIT_LIMIT', unit: 3, number: 5, usage: 200, currentValue: 124, remaining: 76, percentage: 62, nextResetTime: NOW + 8.04e6 },
+          { type: 'CREDIT_LIMIT', unit: 6, number: 1, usage: 1200, currentValue: 624, remaining: 576, percentage: 52, nextResetTime: NOW + 2.6e8 },
+        ],
+      },
+    };
+    const a = normalizeUsage(fixture);
+    log.push('A=' + JSON.stringify(a.windows.map(w => [w.label, w.pct, w.left, w.limit, w.kind])));
+    if (a.windows.length !== 2) throw new Error('A: 窗口数 ' + a.windows.length);
+    if (a.windows[0].label !== '5 小时窗口') throw new Error('A: 窗口1标签 ' + a.windows[0].label);
+    if (a.windows[0].pct !== 38 || a.windows[0].left !== 76) throw new Error('A: 5h 窗口数值错误');
+    if (a.windows[1].label !== '本周' || a.windows[1].pct !== 48 || a.windows[1].left !== 576) throw new Error('A: 周窗口数值错误');
+    if (a.binding !== a.windows[0]) throw new Error('A: binding 应为最先重置的 5h 窗口');
+    if (a.windows[0].pct !== 38 || a.windows[0].left !== 76) throw new Error('A: 已用62% 应换算为剩余38%');
+    if (a.windows[0].pct !== 38) throw new Error('A: 方向检查'); // percentage=62(已用) → 剩余38
+    const e = normalizeUsage({ data: { limits: [{ type: 'CREDIT_LIMIT', unit: 6, number: 1, usage: 1200, currentValue: 12, remaining: 1188, percentage: 1 }] } });
+    if (e.windows[0].pct !== 99) throw new Error('E: percentage=1 应得剩余99%，实际 ' + e.windows[0].pct);
+    if (a.plan !== 'GLM Coding · GLM Coding Pro') throw new Error('A: 套餐名 ' + a.plan);
+
+    // —— 无套餐 / 空团队上下文 ——
+    if (normalizeUsage({ code: 500, msg: '当前用户不存在coding plan', success: false }).windows.length !== 0) throw new Error('B: 无套餐应得 0 窗口');
+    if (normalizeUsage({ code: 200, msg: '操作成功', success: true, data: {} }).windows.length !== 0) throw new Error('C: 空 data 应得 0 窗口');
+
+    // —— 非法窗口类型跳过 ——
+    const d = normalizeUsage({ data: { limits: [{ type: 'SOMETHING_ELSE', unit: 3, number: 5, percentage: 10 }] } });
+    if (d.windows.length !== 0) throw new Error('D: 非 CREDIT_LIMIT 应跳过');
+
+    // —— fetchRawUsage：无 org 时先 type=1 再 type=2；有 org 先 type=2 ——
+    const calls = [];
+    const fakeFetch = async (url) => {
+      calls.push(url);
+      const isType2 = url.includes('type=2');
+      return {
+        ok: true, status: 200,
+        text: async () => JSON.stringify(isType2 ? fixture : { code: 500, msg: '当前用户不存在coding plan', success: false }),
+      };
+    };
+    const r1 = await fetchRawUsage({ apiKey: 'k', fetchImpl: fakeFetch });
+    if (!r1.ok || r1.planType !== 2) throw new Error('E1: 无 org 探测顺序错误 ' + JSON.stringify(calls));
+    const r2 = await fetchRawUsage({ apiKey: 'k', organization: 'org-x', project: 'proj-x', fetchImpl: fakeFetch });
+    if (!r2.ok || r2.planType !== 2 || !calls[calls.length - 1].includes('type=2')) throw new Error('E2: 有 org 应先 type=2');
+
+    // —— 工具 ——
+    if (isZhipuPairKey('aaaa1111bbbb2222.cccc3333dddd4444') !== true) throw new Error('isZhipuPairKey 应识别 id.secret');
+    if (isZhipuPairKey('sk-plain-key')) throw new Error('isZhipuPairKey 误判普通 key');
+
+    // —— P2 · 聚合层：跨连接最紧 + 排除规则（disabled/auth/nosnap/stale） ——
+    const T0 = 1_000_000_000_000;
+    const mkConn = over => ({ id: 'x', provider: 'glm', label: 'X', enabled: true, pollMinutes: 5, status: { state: 'ok' }, ...over });
+    const mkSnap = over => ({ ts: T0 - 60e3, windows: [{ id: 'h5', pct: 35 }], ...over });
+    const agg1 = aggregate([
+      { conn: mkConn({ id: 'a' }), snapshot: mkSnap({ windows: [{ pct: 35 }, { pct: 38 }] }) },
+      { conn: mkConn({ id: 'b', label: 'B' }), snapshot: mkSnap({ windows: [{ pct: 20 }] }) },
+    ], { now: () => T0 });
+    if (agg1.globalPct !== 20 || agg1.binding?.connId !== 'b') throw new Error('P2: 跨连接应取最紧 20（b）');
+    if (agg1.connections.find(c => c.id === 'a').excluded !== null) throw new Error('P2: 正常连接不应被排除');
+    const dis = aggregate([
+      { conn: mkConn({ id: 'a', enabled: false }), snapshot: mkSnap({ windows: [{ pct: 1 }] }) },
+      { conn: mkConn({ id: 'b' }), snapshot: mkSnap() },
+    ], { now: () => T0 });
+    if (dis.globalPct !== 35 || dis.connections.find(c => c.id === 'a').excluded !== 'disabled') throw new Error('P2: disabled 连接应排除且不拖垮全局');
+    const auth = aggregate([{ conn: mkConn({ status: { state: 'auth' } }), snapshot: mkSnap({ windows: [{ pct: 1 }] }) }], { now: () => T0 });
+    if (auth.connections[0].excluded !== 'auth' || auth.globalPct !== null) throw new Error('P2: auth 连接应排除');
+    const nosnap = aggregate([{ conn: mkConn(), snapshot: null }], { now: () => T0 });
+    if (nosnap.connections[0].excluded !== 'nosnap') throw new Error('P2: 无快照应排除');
+    const th = staleThreshold({ pollMinutes: 5 });
+    if (th !== 15 * 60_000) throw new Error('P2: stale 阈值应为 max(2×poll, 15min)');
+    const stale = aggregate([{ conn: mkConn(), snapshot: mkSnap({ ts: T0 - th - 1 }) }], { now: () => T0 });
+    if (!stale.connections[0].stale || stale.globalPct !== null) throw new Error('P2: 过期快照应排除并标 stale');
+
+    // —— P2 · 向导契约：configSchema 摘要必须能过消息总线（JSON 序列化）后仍带可校验约束
+    const rt = JSON.parse(JSON.stringify(listProviders()));
+    const keyField = rt[0].configSchema.fields.find(f => f.name === 'apiKey');
+    if (!keyField || keyField.minLength !== 8 || !keyField.label || keyField.required !== true) {
+      throw new Error('P2: configSchema 过消息总线后必须保留 required/minLength/label（向导侧校验依据）');
+    }
+    const segField = rt[0].configSchema.fields.find(f => f.type === 'segment');
+    if (!segField?.options?.length || !segField.options[0].consoleUrl) {
+      throw new Error('P2: segment 选项应保留 consoleUrl（设置页控制台链接）');
+    }
+
+    document.title = 'HARNESS PASS';
+    document.getElementById('result').textContent = 'HARNESS PASS ✓ 全部断言通过';
+  } catch (e) {
+    document.title = 'HARNESS FAIL: ' + e.message;
+    document.getElementById('result').textContent = 'HARNESS FAIL ✗ ' + e.message;
+  }
+  document.getElementById('log').textContent = log.join('\n');
+</script>
+</body>
+</html>
