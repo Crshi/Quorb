@@ -29,10 +29,11 @@ test('resetText：滚动窗口倒计时', () => {
 });
 
 test('resetText：固定周期显示时点与天数', () => {
-  const target = new Date();
+  const now = new Date(2026, 10, 1, 9, 0, 0, 0);
+  const target = new Date(now.getTime());
   target.setDate(target.getDate() + 3);
   target.setHours(18, 16, 0, 0);
-  const out = resetText({ kind: 'fixed', resetAt: target.getTime() });
+  const out = resetText({ kind: 'fixed', resetAt: target.getTime() }, now.getTime());
   assert.match(out, /18:16/);
   assert.match(out, /3 天/);
 });

@@ -35,15 +35,37 @@
     if (e.windows[0].pct !== 99) throw new Error('E: percentage=1 应得剩余99%，实际 ' + e.windows[0].pct);
     if (a.plan !== 'GLM Coding · GLM Coding Pro') throw new Error('A: 套餐名 ' + a.plan);
 
+    // —— 个人版：TOKENS_LIMIT 双窗（无绝对用量）+ TIME_LIMIT 忽略 ——
+    const personal = normalizeUsage({ data: { level: 'pro', limits: [
+      { type: 'TIME_LIMIT', unit: 5, number: 1, percentage: 1 },
+      { type: 'TOKENS_LIMIT', unit: 3, number: 5, percentage: 2 },
+      { type: 'TOKENS_LIMIT', unit: 6, number: 1, percentage: 14 },
+    ] } });
+    if (personal.windows.length !== 2) throw new Error('P: 个人版应得 2 个窗口，实际 ' + personal.windows.length);
+    if (personal.windows[0].pct !== 98 || personal.windows[1].pct !== 86) throw new Error('P: 个人版剩余百分比错误');
+    if (personal.windows.some(w => w.label === '窗口 u5×1')) throw new Error('P: TIME_LIMIT 不应混入用量窗口');
+    if (personal.plan !== 'GLM Coding · pro') throw new Error('P: 个人版套餐名 ' + personal.plan);
+
     // —— 无套餐 / 空团队上下文 ——
     if (normalizeUsage({ code: 500, msg: '当前用户不存在coding plan', success: false }).windows.length !== 0) throw new Error('B: 无套餐应得 0 窗口');
     if (normalizeUsage({ code: 200, msg: '操作成功', success: true, data: {} }).windows.length !== 0) throw new Error('C: 空 data 应得 0 窗口');
 
-    // —— 非法窗口类型跳过 ——
+    // —— 非法 / 非套餐窗口类型跳过 ——
     const d = normalizeUsage({ data: { limits: [{ type: 'SOMETHING_ELSE', unit: 3, number: 5, percentage: 10 }] } });
-    if (d.windows.length !== 0) throw new Error('D: 非 CREDIT_LIMIT 应跳过');
+    if (d.windows.length !== 0) throw new Error('D: 未知窗口类型应跳过');
 
-    // —— fetchRawUsage：无 org 时先 type=1 再 type=2；有 org 先 type=2 ——
+    // —— fetchRawUsage：个人先不带 type；团队先 type=2；失败再回退 1/2 ——
+    const personalCalls = [];
+    const personalSuccess = { code: 200, success: true, data: { level: 'pro', limits: [{ type: 'TOKENS_LIMIT', unit: 3, number: 5, percentage: 2 }] } };
+    const personalFetch = async (url) => {
+      personalCalls.push(url);
+      return { ok: true, status: 200, text: async () => JSON.stringify(personalSuccess) };
+    };
+    const rp = await fetchRawUsage({ apiKey: 'k', fetchImpl: personalFetch });
+    if (!rp.ok || rp.planType !== null || personalCalls.length !== 1 || personalCalls[0].includes('type=')) {
+      throw new Error('P2: 个人主路径应一次不带 type 命中 ' + JSON.stringify(personalCalls));
+    }
+
     const calls = [];
     const fakeFetch = async (url) => {
       calls.push(url);
@@ -54,9 +76,11 @@
       };
     };
     const r1 = await fetchRawUsage({ apiKey: 'k', fetchImpl: fakeFetch });
-    if (!r1.ok || r1.planType !== 2) throw new Error('E1: 无 org 探测顺序错误 ' + JSON.stringify(calls));
+    if (!r1.ok || r1.planType !== 2) throw new Error('E1: 个人回退探测顺序错误 ' + JSON.stringify(calls));
+    if (calls.length !== 3 || calls[0].includes('type=') || !calls[2].includes('type=2')) throw new Error('E1: 个人应依次不带 type / type=1 / type=2');
+    const teamStart = calls.length;
     const r2 = await fetchRawUsage({ apiKey: 'k', organization: 'org-x', project: 'proj-x', fetchImpl: fakeFetch });
-    if (!r2.ok || r2.planType !== 2 || !calls[calls.length - 1].includes('type=2')) throw new Error('E2: 有 org 应先 type=2');
+    if (!r2.ok || r2.planType !== 2 || calls.length !== teamStart + 1 || !calls[calls.length - 1].includes('type=2')) throw new Error('E2: 有 org 应直接 type=2');
 
     // —— 工具 ——
     if (isZhipuPairKey('aaaa1111bbbb2222.cccc3333dddd4444') !== true) throw new Error('isZhipuPairKey 应识别 id.secret');

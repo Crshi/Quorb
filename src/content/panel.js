@@ -112,7 +112,9 @@ function connCardHTML(c, bindingId) {
       <div class="win ${x.pct === min ? 'binding' : ''}">
         <div class="w-head"><span class="w-label">${esc(x.label)}</span>${x.pct === min ? '<span class="w-bind">最紧</span>' : ''}</div>
         <div class="w-bar"><i style="width:${x.pct ?? 0}%"></i></div>
-        <div class="w-meta">${x.left != null ? fmt(x.left) : '—'} <span class="mu">/ ${x.limit != null ? fmt(x.limit) : '—'} ${esc(x.unit || '')} · 剩 ${x.pct ?? '—'}%</span></div>
+        ${x.left != null || x.limit != null
+          ? `<div class="w-meta">${fmt(x.left)} <span class="mu">/ ${fmt(x.limit)} ${esc(x.unit || '')} · 剩 ${x.pct ?? '—'}%</span></div>`
+          : `<div class="w-meta"><span class="mu">剩 ${x.pct ?? '—'}%</span></div>`}
         <div class="w-reset">${resetText(x) || '—'}${x.pct === min ? ' · 决定当前可用量' : ''}</div>
       </div>`).join('')}</div>` : ''}
   </div>`;

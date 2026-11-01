@@ -64,9 +64,9 @@ test('listProviders 摘要：与 registry 一致且可 JSON 序列化', () => {
 /* ---------- glm fixtures 回归（脱敏样本；协议语义见 src/providers/glm.js 头注） ---------- */
 const glm = REGISTRY.glm;
 
-test('glm · team-double：双窗归一，percentage 是「已用」整数语义', async () => {
+test('glm · team-double：团队双窗归一，percentage 是「已用」整数语义', async () => {
   const r = await glm.fetchUsage(
-    { region: 'bigmodel', apiKey: 'k' },
+    { region: 'bigmodel', apiKey: 'k', organization: 'org-x', project: 'proj_x' },
     { fetchImpl: fakeFetch(loadFixture('glm-team-double.json')) },
   );
   assert.equal(r.ok, true);
@@ -80,6 +80,25 @@ test('glm · team-double：双窗归一，percentage 是「已用」整数语义
   assert.equal(week.pct, 48);                        // percentage=52 → 剩余 48
   assert.match(r.snapshot.plan, /GLM Coding/);
   /* 归一化窗口结构不变式（§3.2，跨服务商稳定） */
+  for (const w of r.snapshot.windows) {
+    assert.ok(w.id && w.label);
+    assert.ok(WINDOW_KINDS.has(w.kind));
+    assert.ok(typeof w.pct === 'number' && w.pct >= 0 && w.pct <= 100);
+    assert.ok('used' in w && 'limit' in w && 'left' in w);
+  }
+});
+
+test('glm · personal-tokens：个人版 TOKENS_LIMIT 双窗可用（仅百分比）', async () => {
+  const r = await glm.fetchUsage(
+    { region: 'bigmodel', apiKey: 'k' },
+    { fetchImpl: fakeFetch(loadFixture('glm-personal-tokens.json')) },
+  );
+  assert.equal(r.ok, true);
+  assert.equal(r.snapshot.windows.length, 2);
+  assert.equal(r.snapshot.windows[0].label, '5 小时窗口');
+  assert.equal(r.snapshot.windows[0].pct, 98);
+  assert.equal(r.snapshot.windows[1].label, '本周');
+  assert.equal(r.snapshot.windows[1].pct, 86);
   for (const w of r.snapshot.windows) {
     assert.ok(w.id && w.label);
     assert.ok(WINDOW_KINDS.has(w.kind));

@@ -85,11 +85,11 @@ export default {
       { name: 'apiKey', type: 'password', label: 'API Key',
         required: true,
         validate: v => v.trim().length >= 8,
-        hint: '团队套餐请在「团队编程套餐 → 我的套餐」页获取；保存前会先验证' },
+        hint: '个人版 / 团队版均在对应 Coding Plan 套餐页获取；保存前会先验证' },
       { name: 'organization', type: 'text', label: '组织 ID',
-        placeholder: 'org-…', hint: '团队套餐必填，个人套餐留空' },
+        placeholder: 'org-…', hint: '仅团队套餐填写，个人账号留空' },
       { name: 'project', type: 'text', label: '项目 ID',
-        placeholder: 'proj_…', hint: '团队套餐必填，个人套餐留空' },
+        placeholder: 'proj_…', hint: '仅团队套餐填写，个人账号留空' },
     ],
   },
 
@@ -138,7 +138,7 @@ export default {
 | `parse` | 响应解析失败 | JSON.parse 失败 | 接口可能变更，看调试原始返回 |
 | `unknown` | 其它 | — | 附 attempts 明细 |
 
-`attempts`（GLM 的 type=2→1 探测轨迹）原样保留进 `error`，供设置页调试展示。
+`attempts`（GLM 的个人不带 type / type=1 / type=2 探测轨迹）原样保留进 `error`，供设置页调试展示。
 
 ---
 
@@ -290,7 +290,7 @@ P1 期间 `quorb/get` 额外投影一份旧字段（`snapshot`/`status`/`pollMin
 | 层 | 载体 | 覆盖 |
 |----|------|------|
 | 纯逻辑单元 | `node --test test/unit/`（CI 可跑，无浏览器依赖） | providers（注入 fetchImpl + fixtures）、aggregate 排除规则、format、migrate 边界、orchestrator（注入假 registry / 假时钟） |
-| fixtures | `test/fixtures/*.json` | GLM type=1 无套餐 / type=2 双窗 / `data:{}` 空上下文 / 401，全部脱敏样本 |
+| fixtures | `test/fixtures/*.json` | GLM 个人 TOKENS_LIMIT 双窗 / 个人无套餐 / 团队 CREDIT_LIMIT 双窗 / `data:{}` 空上下文 / 401，全部脱敏样本 |
 | 浏览器断言 | `test/harness.html` | 解析与聚合断言、向导 schema 渲染 |
 | UI 预览 | `test/page.html` + `mock-chrome.js` | 无需装扩展预览球体与面板；mock fixtures 升级为双连接 |
 | 真机 E2E | 人工清单 | 双 GLM 连接（个人 + 团队三要素）× 24h：独立同步、错误互不传染、聚合正确、旧数据迁移无感 |
@@ -409,7 +409,7 @@ quorb/
 | `docs/best-practices.md` | ✎ | 增补拆分与构建期新踩坑（如有） |
 | `manifest.json` | ✎ | 版本 0.7.0 |
 
-**验收（本期最终目标）**：真机双 GLM 连接（个人 type=1 + 团队三要素 type=2）连续运行 24h——
+**验收（本期最终目标）**：真机双 GLM 连接（个人不带 type + 团队三要素 type=2）连续运行 24h——
 独立同步、错误隔离、聚合正确、位置与隐藏站点记忆正常；
 **从「新增一条连接」到「球体正确聚合」全程没有改过 UI 与后台代码**——这就是第 11 节未来适配器的验收预演。
 
