@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "quorb — AI 用量悬浮球",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "液态玻璃悬浮球 + 侧边栏面板：一眼看尽 GLM Coding Plan 的 5 小时窗口与周用量。密钥仅存本机。",
   "minimum_chrome_version": "116",
   "icons": {

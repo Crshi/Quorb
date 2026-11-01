@@ -19,7 +19,8 @@
 ## API Key
 
 - 获取：[bigmodel.cn 控制台](https://bigmodel.cn/console)（大陆）或
-  [z.ai](https://z.ai/manage-apikey/apikey-list)（国际）；团队席位 Key 另见[用量接口参考](docs/glm-usage-api.md)
+  [z.ai](https://z.ai/manage-apikey/apikey-list)（国际）；个人版 / 团队席位 Key 均在对应
+  Coding Plan 套餐页获取（团队席位另见[用量接口参考](docs/glm-usage-api.md)）
 - 存储：**仅本机 `chrome.storage.local`**，不使用 storage.sync、不进云备份；界面上永远打码显示
 - 权限：`tabs` + 全站 host 用于「安装/重载后向已打开标签页常驻注入悬浮球」——这是悬浮球常驻的必要条件
 - 请求：只发往所选区域的官方域名（`open.bigmodel.cn` / `api.z.ai`）
@@ -36,8 +37,9 @@
 
 ## 数据源
 
-GLM 用量接口未在官方文档公开，quorb 已通过真实账号实测确认调用方式、响应语义与团队席位
-三要素配方，详见 [docs/glm-usage-api.md](docs/glm-usage-api.md)。
+GLM 用量接口未在官方文档公开，quorb 已通过真实账号实测确认调用方式、响应语义、个人账号
+（不带 type）与团队席位三要素两套配方，详见 [docs/glm-usage-api.md](docs/glm-usage-api.md)。
+个人账号只需填 API Key（组织 / 项目留空）；团队席位填 Key + 组织 ID + 项目 ID。
 若官方调整接口：改 `src/providers/glm.js` 即可，UI 不需要动。
 
 ## 本地验证
@@ -49,6 +51,7 @@ npm test                           # 单元测试（node --test，纯逻辑）
 python3 test/serve.py              # http://127.0.0.1:8907
 # 浏览器打开 /test/harness.html     → HARNESS PASS（解析 + 多连接聚合排除 + schema 可序列化断言）
 # 浏览器打开 /test/page.html        → 无需安装扩展预览三连接场景（个人 / 团队 / 过期演示，mock 数据）
+# 浏览器打开 /test/personal.html    → 个人账号真实解析预览（TOKENS_LIMIT → 面板双窗）
 ```
 
 ## 已知边界

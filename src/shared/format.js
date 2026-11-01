@@ -11,10 +11,11 @@ export function fmtSyncTime(ts) {
   return d.toDateString() === now.toDateString() ? `今天 ${hm}` : `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${hm}`;
 }
 
-/* 重置语义：滚动窗口显示倒计时（2h 13m 后重置），固定周期显示时点（10/13 18:16 · 3 天） */
-export function resetText(w) {
+/* 重置语义：滚动窗口显示倒计时（2h 13m 后重置），固定周期显示时点（10/13 18:16 · 3 天）
+ * now 可注入：单元测试用固定时钟，避免「取时后跨过 18:16」导致天数抖动。 */
+export function resetText(w, now = Date.now()) {
   if (!w?.resetAt) return '';
-  const diff = w.resetAt - Date.now();
+  const diff = w.resetAt - now;
   if (diff <= 0) return '已重置 · 等待下次同步';
   if (w.kind === 'rolling') {
     const h = Math.floor(diff / 3.6e6), m = Math.floor((diff % 3.6e6) / 6e4);

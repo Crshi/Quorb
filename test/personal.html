@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>quorb · GLM 个人账号预览</title>
+<style>
+  body{font-family:-apple-system,"PingFang SC",sans-serif;margin:0;padding:48px 56px 48px 560px;background:#f4f1ec;color:#222}
+  h1{font-size:22px;letter-spacing:-.02em}
+  p{max-width:62ch;color:#555;line-height:1.8}
+  .card{margin-top:24px;padding:18px 20px;border-radius:16px;background:#fff;box-shadow:0 8px 24px -12px rgba(30,40,70,.2);max-width:620px}
+  .card b{font-size:13px}
+  code{font:12px ui-monospace,Menlo;background:#f0ece5;border-radius:5px;padding:1px 5px}
+  #parsed{font:12px ui-monospace,Menlo;color:#7a4b00;margin-top:10px;white-space:pre-wrap}
+</style>
+</head>
+<body>
+  <h1>GLM 个人账号 · 真实解析预览</h1>
+  <p>本页用 <code>src/providers/glm.js</code> 归一化一份个人账号的真实形态响应
+     （<code>TOKENS_LIMIT</code> 5 小时 / 周窗口 + <code>TIME_LIMIT</code> MCP 月度计数），
+     再把结果交给真实的悬浮球 / 面板渲染。个人账号只填 API Key，组织 / 项目留空。</p>
+  <div class="card">
+    <b>验证点</b>
+    <p>· 个人账号不需要组织 / 项目 ID，请求走「不带 type」的主路径<br>
+       · <code>TOKENS_LIMIT</code> 的 5 小时 / 周窗口都应显示，百分比按「已用」换算为「剩余」<br>
+       · <code>TIME_LIMIT</code>（MCP 月度计数）不得混入套餐窗口<br>
+       · 无绝对用量字段时只显示剩余百分比，不出现「— / —」</p>
+    <div id="parsed">解析中…</div>
+  </div>
+  <script type="module">
+    import glm from '/src/providers/glm.js';
+    import { aggregate } from '/src/shared/aggregate.js';
+
+    /* 固定时钟：两次截图（修复前 / 修复后）的重置倒计时与同步时间文案一致 */
+    const T0 = new Date(2026, 10, 1, 12, 0, 0, 0).getTime();
+    Date.now = () => T0;
+
+    /* 实测形态（2026-09/10，个人 pro 套餐）：limits[] 为扁平条目，5h 窗口不保证排第一 */
+    const personalResponse = {
+      code: 200, msg: '操作成功', success: true,
+      data: {
+        level: 'pro',
+        limits: [
+          { type: 'TIME_LIMIT', unit: 5, number: 1, percentage: 1, nextResetTime: T0 + 18 * 864e5 },
+          { type: 'TOKENS_LIMIT', unit: 3, number: 5, percentage: 2, nextResetTime: T0 + 4 * 36e5 },
+          { type: 'TOKENS_LIMIT', unit: 6, number: 1, percentage: 14, nextResetTime: T0 + 3 * 864e5 },
+        ],
+      },
+    };
+
+    const result = await glm.fetchUsage(
+      { region: 'bigmodel', apiKey: 'demo-personal-key' },
+      { fetchImpl: async () => ({ status: 200, text: async () => JSON.stringify(personalResponse) }) },
+    );
+
+    const now = T0;
+    const snapshot = {
+      ts: now,
+      plan: result.ok ? result.snapshot.plan : null,
+      windows: result.ok ? result.snapshot.windows : [],
+      endpoint: result.ok ? result.snapshot.endpoint : '',
+      raw: {},
+    };
+    const baseConn = {
+      id: 'c_personal', provider: 'glm', label: '个人版（只填 API Key）', enabled: true, pollMinutes: 5,
+      status: { state: result.ok ? 'ok' : 'error', message: result.ok ? '' : (result.error?.message || '解析失败'), ts: now },
+    };
+    const agg = aggregate([{ conn: baseConn, snapshot }], { now: () => T0 });
+    const conn = {
+      ...agg.connections[0],
+      safeConfig: { region: 'bigmodel', apiKey: '••••••••', organization: '', project: '' },
+    };
+    const getResponse = {
+      ok: true, schemaVersion: 2,
+      connections: [conn],
+      aggregate: { globalPct: agg.globalPct, binding: agg.binding },
+      ui: { orbScope: 'all', pos: { x: 60, y: 150 }, docked: null, hiddenOrigins: [], order: ['c_personal'] },
+      providers: [],
+    };
+
+    const parsed = document.getElementById('parsed');
+    parsed.textContent = 'provider 解析结果：ok=' + result.ok
+      + ' · windows=' + (result.ok ? result.snapshot.windows.length : 0)
+      + (result.ok && result.snapshot.endpoint ? '\nendpoint=' + result.snapshot.endpoint : '')
+      + (result.ok ? '\nplans=' + result.snapshot.windows.map(w => w.label + ' ' + w.pct + '%').join(' · ') : '');
+
+    window.chrome = {
+      runtime: {
+        getURL: p => new URL('/' + p.replace(/^\/+/, ''), location.origin).href,
+        lastError: null,
+        getManifest: () => ({ version: '0.8.0-evidence' }),
+        onMessage: { addListener() {}, removeListener() {} },
+        sendMessage: (msg, cb) => {
+          if (msg?.type === 'quorb/get') cb(getResponse);
+          else if (msg?.type === 'quorb/snap:get') cb({ ok: true, snap: snapshot });
+          else cb({ ok: true });
+        },
+        openOptionsPage() {},
+      },
+      tabs: { query: async () => [], sendMessage: async () => {}, create() {} },
+      storage: {
+        local: { get: (k, cb) => cb && cb({}), set: (o, cb) => cb && cb(), remove: (k, cb) => cb && cb() },
+        onChanged: { addListener() {}, removeListener() {} },
+      },
+    };
+
+    /* 用真实内容脚本渲染（与扩展同一份代码，仅注入方式改为页面内模块） */
+    await import('/src/content/main.js');
+  </script>
+  <script>window.addEventListener('error', e => {
+    const d = document.createElement('pre'); d.id = 'pageerr';
+    d.textContent = 'PAGEERR: ' + e.message + '\n' + (e.error && e.error.stack || '');
+    document.body.appendChild(d); document.title = 'PAGEERR';
+  });</script>
+  <!-- 拖住 load 事件，等悬浮球/面板的打开动画结束再截图（仅 test/serve.py 提供该端点） -->
+  <img src="/test/hold" alt="" style="display:none">
+</body>
+</html>
